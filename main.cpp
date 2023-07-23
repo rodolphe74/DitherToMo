@@ -228,7 +228,7 @@ int main(int argc, char **argv)
     Image originalImage;
     try {
         // Read a file into image object
-        image.read("/home/rodoc/develop/projects/DitherToMo/images/moby-dick-Herman-Melville.jpg");
+        image.read("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg");
 
 
         imageWidth = (uint32_t) image.columns();
