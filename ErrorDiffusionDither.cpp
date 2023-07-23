@@ -1,36 +1,6 @@
 #include <limits>
 #include "ErrorDiffusionDither.h"
-
-
-float colorDelta(Color c1, Color c2)
-{
-    float dr = std::abs(c1.quantumRed() - c2.quantumRed());
-    float dg = std::abs(c1.quantumGreen() - c2.quantumGreen());
-    float db = std::abs(c1.quantumBlue() - c2.quantumBlue());
-
-    // printf("     %f %f %f=%f\n", dr, dg, db, std::sqrt((dr * dr) + (dg * dg) + (db * db)));
-    return sqrt(30.0f * (dr * dr) + 59.0f * (dg * dg) + 11.0f * (db * db));
-    // return std::sqrt((dr * dr) + (dg * dg) + (db * db));
-}
-
-
-Color findClosestColorFromPalette(Color color, const map<string, PALETTE_ENTRY> &palette)
-{
-    float distance;
-    float diff = std::numeric_limits<float>::max();
-    Color nearest;
-
-    for (auto p = palette.begin(); p != palette.end(); p++) {
-        // Color current = p->second.color;
-        distance = colorDelta(p->second.color, color);
-        if (distance < diff) {
-            nearest = p->second.color;
-            diff = distance;
-        }
-    }
-
-    return nearest;
-}
+#include "ColorStuff.h"
 
 Color apply_error(Color p, float ratio, int32_t error[3])
 {
@@ -84,7 +54,7 @@ Image floydSteinbergDither(const Image &source, const map<string, PALETTE_ENTRY>
             oldPixel.quantumBlue(target.pixelColor(serpentine_x, y).quantumBlue());
 
             Color p(oldPixel.quantumRed(), oldPixel.quantumGreen(), oldPixel.quantumBlue());
-            newPixel = findClosestColorFromPalette(p, palette);
+            newPixel = findCorrectedClosestColorFromPalette(p, palette);
             target.pixelColor(serpentine_x, y, newPixel);
             // cout << "("<< serpentine_x << "," << y << ")" << oldPixel.quantumRed()<< "," << oldPixel.quantumGreen()<< "," << oldPixel.quantumBlue() << " -> "<< newPixel.quantumRed()<< "," << newPixel.quantumGreen()<< "," << newPixel.quantumBlue() << endl;
 
@@ -113,7 +83,7 @@ Image floydSteinbergDither(const Image &source, const map<string, PALETTE_ENTRY>
         // cout << "Quant+" << endl;
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                target.pixelColor(x, y, findClosestColorFromPalette(target.pixelColor(x, y), palette));
+                target.pixelColor(x, y, findCorrectedClosestColorFromPalette(target.pixelColor(x, y), palette));
             }
         }
     }

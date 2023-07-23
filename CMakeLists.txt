@@ -17,7 +17,7 @@ set (ldflags "-L/usr/local/lib -lMagick++-7.Q16 -lMagickWand-7.Q16 -lMagickCore-
 set (libs "-L/usr/local/lib -lMagick++-7.Q16 -lMagickWand-7.Q16 -lMagickCore-7.Q16")
 
 
-add_executable(dtm main.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp)
+add_executable(dtm main.cpp ColorStuff.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp)
 
 set(CMAKE_CXX_FLAGS ${cxxflags})
 set (CMAKE_SHARED_LINKER_FLAGS ${ldflags})

@@ -17,16 +17,16 @@ using namespace std;
 
 
 uint32_t imageWidth, imageHeight;
-char key[256];
+// char key[256];
 map<string, PALETTE_ENTRY> palette;
 float zoomx = 0.0f, zoomy = 0.0f, zoom = 0.0f;
 
-string getPaletteKey(Color c)
-{
-    sprintf(key, "%d,%d,%d", c.quantumRed(), c.quantumGreen(), c.quantumBlue());
-    string s(key);
-    return s;
-}
+// string getPaletteKey(Color c)
+// {
+//     sprintf(key, "%d,%d,%d", c.quantumRed(), c.quantumGreen(), c.quantumBlue());
+//     string s(key);
+//     return s;
+// }
 
 
 void getPaletteFromImage(const Image &im, map<string, PALETTE_ENTRY> &pal)
@@ -222,6 +222,9 @@ void findNearestClashedFragment(std::vector<std::map<string, PALETTE_ENTRY>> pal
 int main(int argc, char **argv)
 {
     InitializeMagick(*argv);
+    initThomsonPalette();
+    // Image tp = createImageFromThomsonPalette();
+    // tp.write("thomsonPalette.png");
     initThomsonCompensation();
 
     Image image;
@@ -292,6 +295,13 @@ int main(int argc, char **argv)
         image = floydSteinbergDither(originalImage, palette, &floyd_matrix[USE_MATRIX]);
         image.write("dithered1.gif");
 
+
+        // Find palette in Thomson color space
+        // std::map<string, PALETTE_ENTRY> thomsonPalette;
+        // createThomsonPaletteFromRGB(palette, thomsonPalette);
+        // Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette, colorArray);
+        // exit(1);
+
         // DITHER with 15 colors, Set black as 16th. Lighten dark colors (easier to match with Thomson colors).
         // remap original with new palette.
         // work on new remap dithered image.
@@ -302,7 +312,7 @@ int main(int argc, char **argv)
             cout << "  TColor " << p->first << " at " << (int)(p->second.index) << endl;
         }
         colorArray.resize(palette.size());
-        Image newColorMap = writeColormap("thomsonColormap.gif", palette, colorArray);
+        /*Image newColorMap = */writeColormap("thomsonColormap.gif", palette, colorArray);
 
         // Dither original with the updated palette
         // image.map(newColorMap, true);
@@ -310,23 +320,6 @@ int main(int argc, char **argv)
         image.write("dithered2.gif");
 
         // Create all possible couples from 16 colors colormap
-        // std::vector<Image> couples;
-        // for (int i = 0; i < DITHER_SIZE; i++) {
-        //     for (int j = i; j < DITHER_SIZE; j++) {
-        //         if (i == j) continue;
-        //         Color c1 = colorArray[i];
-        //         Color c2 = colorArray[j];
-        //         Image twoColors(Geometry(2 * 8, 8), "white");
-        //         DrawableRectangle d1(0, 0, 8, 8);
-        //         twoColors.fillColor(c1);
-        //         twoColors.draw(d1);
-        //         DrawableRectangle d2(8, 0, 16, 8);
-        //         twoColors.fillColor(c2);
-        //         twoColors.draw(d2);
-        //         couples.push_back(twoColors);
-        //     }
-        // }
-
         std::vector<std::map<string, PALETTE_ENTRY>> paletteCouples;
         string k;
         for (int i = 0; i < DITHER_SIZE; i++) {

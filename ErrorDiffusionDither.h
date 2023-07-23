@@ -430,9 +430,6 @@ static OSTRO_COEFS OSTRO_COEFS_ARRAY[256] = {
     {13,  0,   5, 18 }
 };
 
-float colorDelta(Color c1, Color c2);
-Color findClosestColorFromPalette(Color color, const map<string, PALETTE_ENTRY> &palette);
-
 //-------------------------------------------------------------------------------
 // Floyd Steinberg
 // Image retournee doit etre liberee par l'appelant
