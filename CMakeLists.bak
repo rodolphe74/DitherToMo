@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.0)
+
+# sudo apt install graphicsmagick-libmagick-dev-compat
+
+project(dtm)
+message(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
+# set (cxxflags "-g -O2 -ffile-prefix-map=/build/graphicsmagick-cVGCie/graphicsmagick-1.4+really1.3.40=. -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security -fdebug-prefix-map=/build/graphicsmagick-cVGCie/graphicsmagick-1.4+really1.3.40=/usr/src/graphicsmagick-1.4+really1.3.40-4")
+set (cxxflags "-g -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security")
+# set (cppflags "-I/usr/include/GraphicsMagick")
+set (cppflags "-I${PROJECT_SOURCE_DIR}/ImageMagick/Magick++/lib")
+set (ldflags "-L/usr/lib -Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -Wl,-z,relro -Wl,-z,now")
+# set (libs "-lGraphicsMagick++ -lGraphicsMagick -ljbig -lwebp -lwebpmux -lheif -lde265 -llcms2 -ltiff -lfreetype -ljpeg -ljxl -ljxl_threads -lhwy -lbrotlidec -lbrotlienc -lstdc++ -lpng16 -lwmflite -lXext -lSM -lICE -lX11 -llzma -lbz2 -lxml2 -lz -lzstd -lm -lpthread -lgomp")
+set (libs "-ljbig -lwebp -lwebpmux -lheif -lde265 -llcms2 -ltiff -lfreetype -ljpeg -ljxl -ljxl_threads -lhwy -lbrotlidec -lbrotlienc -lstdc++ -lpng16 -lwmflite -lXext -lSM -lICE -lX11 -llzma -lbz2 -lxml2 -lz -lzstd -lm -lpthread -lgomp")
+
+# add_library(libGraphicsMagick++ STATIC IMPORTED)
+# set_target_properties(libGraphicsMagick++ PROPERTIES IMPORTED_LOCATION  ${PROJECT_SOURCE_DIR}/ImageMagick/MagickCore/.libs/libMagickCore-7.Q16HDRI.a)
+
+add_executable(dtm main.cpp ThomsonStuff.cpp)
+
+set(CMAKE_CXX_FLAGS ${cxxflags})
+set (CMAKE_SHARED_LINKER_FLAGS ${ldflags})
+target_include_directories(dtm PRIVATE ${cppflags})
+# target_link_libraries(dtm ${libs} ${PROJECT_SOURCE_DIR}/ImageMagick/MagickCore/.libs/libMagickCore-7.Q16HDRI.a)
+target_link_libraries(dtm ${PROJECT_SOURCE_DIR}/ImageMagick/MagickWand/.libs/libMagickWand-7.Q16HDRI.a  ${PROJECT_SOURCE_DIR}/ImageMagick/MagickCore/.libs/libMagickCore-7.Q16HDRI.a  ${PROJECT_SOURCE_DIR}/ImageMagick/Magick++/lib/.libs/libMagick++-7.Q16HDRI.a)
+
+install(TARGETS dtm RUNTIME DESTINATION bin)
