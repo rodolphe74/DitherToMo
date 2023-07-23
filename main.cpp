@@ -341,16 +341,6 @@ int main(int argc, char **argv)
                 k = getPaletteKey(c2);
                 pc.insert(pair<string, PALETTE_ENTRY>(k, {c2, 1}));
                 paletteCouples.push_back(pc);
-
-                // Image twoColors(Geometry(2 * 8, 8), "white");
-                // DrawableRectangle d1(0, 0, 8, 8);
-                // twoColors.fillColor(c1);
-                // twoColors.draw(d1);
-                // DrawableRectangle d2(8, 0, 16, 8);
-                // twoColors.fillColor(c2);
-                // twoColors.draw(d2);
-
-                // couples.push_back(twoColors);
             }
         }
 
