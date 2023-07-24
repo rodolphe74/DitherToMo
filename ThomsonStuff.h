@@ -104,6 +104,7 @@ void initThomsonPalette();
 void createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette);
 Image createImageFromThomsonPalette();
 Color getColorForPaletteIndex(const map<string, PALETTE_ENTRY> &palette, int index);
+uint16_t getThomsonIndexForPaletteIndex(const map<string, PALETTE_ENTRY> &palette, int index);
 void initThomsonCompensation();
 int getPaletteThomsonValue(int r, int g, int b);
 void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<string, PALETTE_ENTRY> &palette);

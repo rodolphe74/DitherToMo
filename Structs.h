@@ -7,6 +7,7 @@ using namespace Magick;
 struct PALETTE_ENTRY_STRUCT {
     Color color;
     uint8_t index;
+    uint16_t thomsonIndex;
 };
 typedef PALETTE_ENTRY_STRUCT PALETTE_ENTRY;
 
@@ -15,4 +16,4 @@ typedef PALETTE_ENTRY_STRUCT PALETTE_ENTRY;
 #define RESULT_SIZE_X 320.0
 #define RESULT_SIZE_Y 200.0
 #define LUMINOSITY_THRESHOLD 0.40
-#define USE_MATRIX 9
+#define USE_MATRIX 8

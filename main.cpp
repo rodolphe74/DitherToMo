@@ -297,11 +297,12 @@ int main(int argc, char **argv)
 
 
         // Find palette in Thomson color space
-        // std::map<string, PALETTE_ENTRY> thomsonPalette;
-        // createThomsonPaletteFromRGB(palette, thomsonPalette);
-        // Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette, colorArray);
-        // exit(1);
+        std::map<string, PALETTE_ENTRY> thomsonPalette;
+        createThomsonPaletteFromRGB(palette, thomsonPalette);
+        Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette, colorArray);
+        cout << "*** Thomson Palette [" << thomsonPalette.size() << "]***"  << endl;
 
+        /*
         // DITHER with 15 colors, Set black as 16th. Lighten dark colors (easier to match with Thomson colors).
         // remap original with new palette.
         // work on new remap dithered image.
@@ -312,11 +313,12 @@ int main(int argc, char **argv)
             cout << "  TColor " << p->first << " at " << (int)(p->second.index) << endl;
         }
         colorArray.resize(palette.size());
-        /*Image newColorMap = */writeColormap("thomsonColormap.gif", palette, colorArray);
+        writeColormap("thomsonColormap.gif", palette, colorArray);
+        */
 
         // Dither original with the updated palette
         // image.map(newColorMap, true);
-        image = floydSteinbergDither(originalImage, palette, &floyd_matrix[USE_MATRIX]);
+        image = floydSteinbergDither(originalImage, /*palette*/thomsonPalette, &floyd_matrix[USE_MATRIX]);
         image.write("dithered2.gif");
 
         // Create all possible couples from 16 colors colormap
@@ -380,7 +382,7 @@ int main(int argc, char **argv)
                 }
 
                 // convert fragment to thomson planes
-                convertClashFragmentToPaletteIndexedBloc(clashFragment, palette, currentBloc, CLASH_SIZE);
+                convertClashFragmentToPaletteIndexedBloc(clashFragment, /*palette*/ thomsonPalette, currentBloc, CLASH_SIZE);
                 uint8_t ret[3];
                 convertBlocToThomson(currentBloc, ret);
                 map_40.rama.push_back(ret[0]);
@@ -399,7 +401,7 @@ int main(int argc, char **argv)
         cout << endl << totalClashed << "/" << totalPixelsClash << " to reprocess" << std::endl;
         reprocessed.write("thomsonReprocessed.gif");
 
-        save_map_40_col("tosnap", map_40, palette);
+        save_map_40_col("tosnap", map_40, /*palette*/ thomsonPalette);
 
     } catch (Exception &error_) {
         cout << "Caught exception: " << error_.what() << endl;
