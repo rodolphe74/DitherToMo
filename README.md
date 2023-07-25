@@ -10,7 +10,8 @@ Rely on [ImageMagick 7](https://github.com/ImageMagick/ImageMagick) :
 git clone https://github.com/ImageMagick/ImageMagick.git
 git checkout tags/7.1.1-13
 ./configure --with-quantum-depth=16 --disable-hdri
-make; make install
+make
+sudo make install
 sudo ldconfig
 cmake .
 make
