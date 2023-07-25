@@ -9,19 +9,23 @@ cmake_minimum_required(VERSION 3.0)
 project(dtm)
 message(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
+# sapfs cmake compilation
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fomit-frame-pointer -funsigned-char")
+add_library(sapfslib STATIC sap2/sapfs.c sap2/libsap.c)
+add_executable(sapfs sap2/sapfs.c)
+target_link_libraries(sapfs sapfslib)
 
+# main executable
 set (cxxflags "-I/usr/local/include/ImageMagick-7 -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16")
-# set (cppflags "-g -I/usr/local/include/ImageMagick-7 -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16")
-set (cppflags "-O2 -I/usr/local/include/ImageMagick-7 -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16")
+set (cppflags "-g -I/usr/local/include/ImageMagick-7 -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16")
+# set (cppflags "-O2 -I/usr/local/include/ImageMagick-7 -DMAGICKCORE_HDRI_ENABLE=0 -DMAGICKCORE_QUANTUM_DEPTH=16")
 set (ldflags "-L/usr/local/lib -lMagick++-7.Q16 -lMagickWand-7.Q16 -lMagickCore-7.Q16")
 set (libs "-L/usr/local/lib -lMagick++-7.Q16 -lMagickWand-7.Q16 -lMagickCore-7.Q16")
 
-
-add_executable(dtm main.cpp ColorStuff.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp)
-
+add_executable(dtm main.cpp Floppy.cpp ColorStuff.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp)
 set(CMAKE_CXX_FLAGS ${cxxflags})
 set (CMAKE_SHARED_LINKER_FLAGS ${ldflags})
 target_include_directories(dtm PRIVATE ${cppflags})
-target_link_libraries(dtm ${libs})
+target_link_libraries(dtm ${libs} sapfslib)
 
 install(TARGETS dtm RUNTIME DESTINATION bin)

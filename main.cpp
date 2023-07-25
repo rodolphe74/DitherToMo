@@ -9,25 +9,19 @@
 #include <limits>
 #include <string.h>
 #include <cmath>
+#include <sstream>
+#include <iomanip>
 #include "Structs.h"
 #include "ThomsonStuff.h"
 #include "ErrorDiffusionDither.h"
+#include "Floppy.h"
 
 using namespace std;
 
 
-uint32_t imageWidth, imageHeight;
-// char key[256];
-map<string, PALETTE_ENTRY> palette;
-float zoomx = 0.0f, zoomy = 0.0f, zoom = 0.0f;
-
-// string getPaletteKey(Color c)
-// {
-//     sprintf(key, "%d,%d,%d", c.quantumRed(), c.quantumGreen(), c.quantumBlue());
-//     string s(key);
-//     return s;
-// }
-
+// uint32_t imageWidth, imageHeight;
+// map<string, PALETTE_ENTRY> palette;
+// float zoomx = 0.0f, zoomy = 0.0f, zoom = 0.0f;
 
 void getPaletteFromImage(const Image &im, map<string, PALETTE_ENTRY> &pal)
 {
@@ -45,59 +39,6 @@ void getPaletteFromImage(const Image &im, map<string, PALETTE_ENTRY> &pal)
     }
 }
 
-
-void compensatePalette(map<string, PALETTE_ENTRY> &palette)
-{
-    map<string, PALETTE_ENTRY> compensatedPalette;
-    uint8_t idx = 0;
-    // Find darkest colors
-    double maxLum = std::numeric_limits<double>::max();
-    std::map<string, PALETTE_ENTRY>::iterator minLumColor;
-    for (auto p = palette.begin(); p != palette.end(); p++) {
-        ColorHSL cHsl(p->second.color);
-        double lum = cHsl.lightness();
-        if (lum < maxLum) {
-            minLumColor = p;
-            maxLum = lum;
-        }
-    }
-
-    cout << "*** Palette luminosity compensation ***" << endl;
-    cout << "  Darkest color:" << minLumColor->first << " lum:" << maxLum << endl;
-    Color black(0, 0, 0);
-    string k = getPaletteKey(black);
-    compensatedPalette[k] = {black, idx++};
-
-    for (auto p = palette.begin(); p != palette.end(); p++) {
-
-        if (p->first == minLumColor->first) {
-            // skip darkest
-            continue;
-        }
-
-        ColorHSL cHsl(p->second.color);
-        double lum = cHsl.lightness();
-        if (lum < LUMINOSITY_THRESHOLD) {
-            cout << "  Color " << p->first << " Lum:" << maxLum << endl;
-            cHsl.lightness(LUMINOSITY_THRESHOLD);
-            string k = getPaletteKey(cHsl);
-            compensatedPalette[k] = {cHsl, idx++};
-        } else {
-            string k = getPaletteKey(cHsl);
-            compensatedPalette[k] = {cHsl, idx++};
-        }
-
-    }
-
-    cout << "***" << endl;
-    for (auto p = compensatedPalette.begin(); p != compensatedPalette.end(); p++) {
-        ColorHSL cHsl(p->second.color);
-        // cout << "color:" << p->first << " lum:" << cHsl.luminosity() << endl;
-        cout << "  Color "  << p->first << " lum:" << cHsl.lightness() << " at " << (int) p->second.index << endl;
-    }
-
-    palette = compensatedPalette;
-}
 
 
 Image writeColormap(string filename, const map<string, PALETTE_ENTRY> &palette, vector<Color> &colorArray)
@@ -120,7 +61,6 @@ Image writeColormap(string filename, const map<string, PALETTE_ENTRY> &palette, 
 }
 
 
-
 void convertClashFragmentToPaletteIndexedBloc(const Image &fragment, const map<string, PALETTE_ENTRY> &palette, uint8_t *bloc, int blocSize)
 {
     for (int i = 0; i < blocSize; i++) {
@@ -130,13 +70,6 @@ void convertClashFragmentToPaletteIndexedBloc(const Image &fragment, const map<s
         bloc[CLASH_SIZE - 1 - i] = idx;
     }
 }
-
-
-
-
-
-
-
 
 
 uint32_t countColors(const Image &image)
@@ -180,26 +113,6 @@ double compareFragment(const Image &first, const Image &second)
     return result;
 }
 
-// void findNearestClashedFragment(const vector<Image> &couples, Image &fragment)
-// {
-//     double diff = std::numeric_limits<double>::max();
-//     Image selectedFragment;
-//     map<string, PALETTE_ENTRY> currentCouplePalette;
-//     // try to find the best dithered color couple which match with current clashed fragment
-//     for (auto mapImageIterator = couples.begin(); mapImageIterator != couples.end(); mapImageIterator++) {
-//         Image ditherFragment = fragment;
-//         // ditherFragment.map(*mapImageIterator, true); TODO
-//         currentCouplePalette.clear();
-//         getPaletteFromImage(*mapImageIterator, currentCouplePalette);
-//         ditherFragment = floydSteinbergDither(ditherFragment, currentCouplePalette, &floyd_matrix[USE_MATRIX]);
-//         double currentDiff = compareFragment(ditherFragment, fragment);
-//         if (currentDiff < diff) {
-//             diff = currentDiff;
-//             selectedFragment = ditherFragment;
-//         }
-//     }
-//     fragment = selectedFragment;
-// }
 
 
 void findNearestClashedFragment(std::vector<std::map<string, PALETTE_ENTRY>> paletteCouples, Image &fragment)
@@ -219,20 +132,48 @@ void findNearestClashedFragment(std::vector<std::map<string, PALETTE_ENTRY>> pal
     fragment = selectedFragment;
 }
 
-int main(int argc, char **argv)
+void extractFilenameFromPath(const string &fullpath, string &name, string &ext)
 {
-    InitializeMagick(*argv);
-    initThomsonPalette();
-    // Image tp = createImageFromThomsonPalette();
-    // tp.write("thomsonPalette.png");
-    initThomsonCompensation();
+    std::string path = fullpath;
+    // input >> path;
 
+    size_t sep = path.find_last_of("\\/");
+    if (sep != std::string::npos)
+        path = path.substr(sep + 1, path.size() - sep - 1);
+
+    size_t dot = path.find_last_of(".");
+    if (dot != std::string::npos) {
+        name = path.substr(0, dot);
+        ext  = path.substr(dot, path.size() - dot);
+    } else {
+        name = path;
+        ext  = "";
+    }
+}
+
+
+int ditherImage(string fullpath, int countIndex)
+{
+    uint32_t imageWidth, imageHeight;
+    map<string, PALETTE_ENTRY> palette;
+    float zoomx = 0.0f, zoomy = 0.0f, zoom = 0.0f;
     Image image;
     Image originalImage;
+
+    string name, ext;
+    extractFilenameFromPath(fullpath, name, ext);
+
+    string prefix = name.substr(0, name.length() < 6 ? name.length() : 6);
+    std::stringstream ss;
+    ss << std::setw(2) << std::setfill('0') << countIndex;
+    std::string s = ss.str();
+    name = prefix.append(s);
+
+    cout << "Working on " << name << endl;
+
     try {
         // Read a file into image object
-        image.read("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg");
-
+        image.read(fullpath.c_str());
 
         imageWidth = (uint32_t) image.columns();
         imageHeight = (uint32_t) image.rows();
@@ -262,28 +203,12 @@ int main(int argc, char **argv)
 
         // create palette structure
         getPaletteFromImage(image, palette);
-        // uint8_t paletteIdx = 0;
-        // for (uint32_t y = 0; y < imageHeight; y++) {
-        //     for (uint32_t x = 0;  x < imageWidth; x++) {
-        //         Color c = image.pixelColor(x, y);
-        //         string k = getPaletteKey(c);
-        //         PALETTE_ENTRY pe = {c, 0};
-        //         palette.insert(pair<string, PALETTE_ENTRY>(k, pe));
-        //     }
-        // }
-        // for (auto p = palette.begin(); p != palette.end(); p++) {
-        //     p->second.index = paletteIdx++;
-        // }
 
 
         cout << "*** original Palette [" << palette.size() << "]***"  << endl;
         for (auto p = palette.begin(); p != palette.end(); p++) {
             cout << "  Color " << p->first << " at " << (int)(p->second.index) << endl;
         }
-
-        // debug dither
-        // Image edd = floydSteinbergDither(originalImage, palette, &floyd_matrix[3]);
-        // edd.write("edd.gif");
 
         // debug informations
         originalImage.write("original.png");
@@ -296,29 +221,15 @@ int main(int argc, char **argv)
         image.write("dithered1.gif");
 
 
-        // Find palette in Thomson color space
+        // Find ImageMagick palette in Thomson color space
         std::map<string, PALETTE_ENTRY> thomsonPalette;
         createThomsonPaletteFromRGB(palette, thomsonPalette);
         Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette, colorArray);
         cout << "*** Thomson Palette [" << thomsonPalette.size() << "]***"  << endl;
 
-        /*
-        // DITHER with 15 colors, Set black as 16th. Lighten dark colors (easier to match with Thomson colors).
-        // remap original with new palette.
-        // work on new remap dithered image.
-        // Apply thomson compensation
-        compensatePalette(palette);
-        cout << "*** Thomson Palette [" << palette.size() << "]***"  << endl;
-        for (auto p = palette.begin(); p != palette.end(); p++) {
-            cout << "  TColor " << p->first << " at " << (int)(p->second.index) << endl;
-        }
-        colorArray.resize(palette.size());
-        writeColormap("thomsonColormap.gif", palette, colorArray);
-        */
 
         // Dither original with the updated palette
-        // image.map(newColorMap, true);
-        image = floydSteinbergDither(originalImage, /*palette*/thomsonPalette, &floyd_matrix[USE_MATRIX]);
+        image = floydSteinbergDither(originalImage, thomsonPalette, &floyd_matrix[USE_MATRIX]);
         image.write("dithered2.gif");
 
         // Create all possible couples from 16 colors colormap
@@ -348,7 +259,7 @@ int main(int argc, char **argv)
         //     mapImageIterator->write(coupleName.c_str());
         //     idx++;
         // }
-        cout << "Couples:" << paletteCouples.size() << endl;
+        cout << "Couples found:" << paletteCouples.size() << endl;
 
         // Process color clash by re-dithering 8 pixels length fragments having color count > 2
         // Try all possible couples, keep best result for each
@@ -382,7 +293,7 @@ int main(int argc, char **argv)
                 }
 
                 // convert fragment to thomson planes
-                convertClashFragmentToPaletteIndexedBloc(clashFragment, /*palette*/ thomsonPalette, currentBloc, CLASH_SIZE);
+                convertClashFragmentToPaletteIndexedBloc(clashFragment, thomsonPalette, currentBloc, CLASH_SIZE);
                 uint8_t ret[3];
                 convertBlocToThomson(currentBloc, ret);
                 map_40.rama.push_back(ret[0]);
@@ -401,12 +312,31 @@ int main(int argc, char **argv)
         cout << endl << totalClashed << "/" << totalPixelsClash << " to reprocess" << std::endl;
         reprocessed.write("thomsonReprocessed.gif");
 
-        save_map_40_col("tosnap", map_40, /*palette*/ thomsonPalette);
+        save_map_40_col(name.c_str(), map_40, thomsonPalette);
 
+        // Create thomson sap floppy
+        if (countIndex == 0)
+            writeImagesListOnDisk("dithtomo.sap", name.append(".map"), 1);
+        else
+            writeImagesListOnDisk("dithtomo.sap", name.append(".map"), 0);
+        countIndex++;
     } catch (Exception &error_) {
         cout << "Caught exception: " << error_.what() << endl;
         return 1;
     }
+    return 0;
+}
+
+
+int main(int argc, char **argv)
+{
+    InitializeMagick(*argv);
+    initThomsonPalette();
+    initThomsonCompensation();
+
+    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/arton5254.jpg", 0);
+    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1);
+
     return 0;
 }
 

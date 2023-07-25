@@ -1,0 +1,65 @@
+##########################################################################
+# targets:                                                               #
+#  all (default) : build sap2 and sapfs                                  #
+#  install       : build and install sap2 and sapfs in $(PREFIX)/bin     #
+#  clean         : delete all rebuildable files                          #
+##########################################################################
+
+PREFIX ?= /usr/local
+
+# PREFIX_MO is the PREFIX for the translations of the user interface
+# Sadly, /usr/local/share/locale is not used, they're only
+# searched in /usr/share/locale
+PREFIX_MO ?= /usr
+
+
+################
+# object files #
+################
+
+OBJ_DIR =
+OBJ_SAP = $(OBJ_DIR)sap2.o $(OBJ_DIR)libsap.o $(OBJ_DIR)lfloppy.o
+OBJ_SAPFS = $(OBJ_DIR)sapfs.o $(OBJ_DIR)libsap.o
+
+
+##################
+# compiler flags #
+##################
+
+CC = gcc
+
+# WFLAGS = -Wall -W -Werror -Wimplicit-fallthrough=0
+
+OFLAGS = -O2 -fomit-frame-pointer -funsigned-char
+
+CFLAGS = $(WFLAGS) $(OFLAGS) -DPREFIX_MO=$(PREFIX_MO)
+
+
+################
+# target rules #
+################
+
+.PHONY: all install clean
+
+all: sap2 sapfs i18n
+
+install:
+	install -d $(PREFIX)/bin
+	install -s sap2 sapfs $(PREFIX)/bin
+	make -C i18n install PREFIX_MO=$(PREFIX_MO)
+
+clean:
+	rm -f sap2 sapfs $(OBJ_DIR)*.o
+	make -C i18n clean
+
+sap2: $(OBJ_SAP)
+	$(CC) -s -o sap2 $(OBJ_SAP)
+
+sapfs: $(OBJ_SAPFS)
+	$(CC) -s -o sapfs $(OBJ_SAPFS)
+
+$(OBJ_DIR)%.o: %.c
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+i18n: $(OBJ_SAP) $(OBJ_SAPFS)
+	make -C i18n

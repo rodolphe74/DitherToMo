@@ -1,0 +1,9 @@
+*~
+*.o
+sap2
+sapfs
+*.sap
+.AppleDouble*
+.DS_Store*
+*.mo
+*.pot

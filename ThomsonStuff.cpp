@@ -144,8 +144,6 @@ int getPaletteThomsonValue(int r, int g, int b)
 void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<string, PALETTE_ENTRY> &palette)
 {
     vector<uint8_t> buffer_list, target_buffer_list;
-    int r, g, b;
-
     unsigned char current;
 
     FILE *fout;
