@@ -14,6 +14,7 @@ git checkout tags/7.1.1-13
 make
 sudo make install
 sudo ldconfig
+git clone https://github.com/rodolphe74/DitherToMo.git
 cmake .
 make
 ```
