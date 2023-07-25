@@ -7,7 +7,7 @@ Dither image to the Thomson bitmap 40 (320x200 16 colors with color clash) graph
 
 Rely on [ImageMagick 7](https://github.com/ImageMagick/ImageMagick) :
 
-```bash
+```shell
 git clone https://github.com/ImageMagick/ImageMagick.git
 git checkout tags/7.1.1-13
 ./configure --with-quantum-depth=16 --disable-hdri
