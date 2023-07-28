@@ -20,3 +20,4 @@ float preciseColorDelta(Color c1, Color c2);
 Color findPreciseClosestColorFromPalette(Color color, const map<string, PALETTE_ENTRY> &palette);
 float correctedColorDelta(Color c1, Color c2);
 Color findCorrectedClosestColorFromPalette(Color color, const map<string, PALETTE_ENTRY> &palette);
+

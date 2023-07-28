@@ -15,13 +15,42 @@
 #include "ThomsonStuff.h"
 #include "ErrorDiffusionDither.h"
 #include "Floppy.h"
+#include "KMean.h"
 
 using namespace std;
 
+static int iterAnim = 0;
 
-// uint32_t imageWidth, imageHeight;
-// map<string, PALETTE_ENTRY> palette;
-// float zoomx = 0.0f, zoomy = 0.0f, zoom = 0.0f;
+void debugPalette(const map<string, PALETTE_ENTRY> &palette, const string &paletteName)
+{
+    cout << endl << "*** " << paletteName << "[" << palette.size() << "] ***"  << endl;
+    for (auto p = palette.begin(); p != palette.end(); p++) {
+        cout << "Color " << p->first << " at " << (int)(p->second.index) << " th=" << (int) (p->second.thomsonIndex) << endl;
+    }
+    cout << endl;
+}
+
+void waitAnim()
+{
+    switch (iterAnim % 4) {
+    case 0:
+        std::cout << "\b\\" << std::flush;
+        break;
+    case 1:
+        std::cout << "\b|" << std::flush;
+        break;
+    case 2:
+        std::cout << "\b/" << std::flush;
+        break;
+    case 3:
+        std::cout << "\b-" << std::flush;
+        break;
+    default:
+        break;
+    }
+    iterAnim++;
+}
+
 
 void getPaletteFromImage(const Image &im, map<string, PALETTE_ENTRY> &pal)
 {
@@ -41,18 +70,19 @@ void getPaletteFromImage(const Image &im, map<string, PALETTE_ENTRY> &pal)
 
 
 
-Image writeColormap(string filename, const map<string, PALETTE_ENTRY> &palette, vector<Color> &colorArray)
+Image writeColormap(string filename, const map<string, PALETTE_ENTRY> &palette/*, vector<Color> &colorArray*/)
 {
     Image colormap(Geometry(DITHER_SIZE * 8, 8), "white");
     int idx = 0;
-    // Color colorArray[DITHER_SIZE];
     for (auto it = palette.begin(); it != palette.end(); it++) {
         int x = idx * 8;
         DrawableRectangle d(x, 0, x + 8, 8);
         Color c = it->second.color;
+        // cout << filename << " - writing color " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() << "," << c.quantumAlpha() << endl;
         colormap.fillColor(c);
         colormap.draw(d);
-        colorArray[idx] = c;
+        // colorArray[idx] = c;
+        // colorArray.push_back(c);
         idx++;
     }
     // Write colormap
@@ -60,6 +90,13 @@ Image writeColormap(string filename, const map<string, PALETTE_ENTRY> &palette, 
     return colormap;
 }
 
+void createPaletteArray(const map<string, PALETTE_ENTRY> &palette, vector<Color> &colorArray)
+{
+    for (auto it = palette.begin(); it != palette.end(); it++) {
+        Color c = it->second.color;
+        colorArray.push_back(c);
+    }
+}
 
 void convertClashFragmentToPaletteIndexedBloc(const Image &fragment, const map<string, PALETTE_ENTRY> &palette, uint8_t *bloc, int blocSize)
 {
@@ -155,7 +192,7 @@ void extractFilenameFromPath(const string &fullpath, string &name, string &ext)
 int ditherImage(string fullpath, int countIndex)
 {
     uint32_t imageWidth, imageHeight;
-    map<string, PALETTE_ENTRY> palette;
+    map<string, PALETTE_ENTRY> palette, kmeanPalette;
     float zoomx = 0.0f, zoomy = 0.0f, zoom = 0.0f;
     Image image;
     Image originalImage;
@@ -185,54 +222,74 @@ int ditherImage(string fullpath, int countIndex)
             zoomy = imageHeight / RESULT_SIZE_Y;
         }
         if (zoomx != 0 || zoomy != 0) {
-            std::cout << "Zoom x|y : " << zoomx << "|" << zoomy << std::endl;
+            // std::cout << "Zoom x|y : " << zoomx << "|" << zoomy << std::endl;
             zoom = std::max(zoomx, zoomy);
-            std::cout << "Selected zoom : " << zoom << std::endl;
+            // std::cout << "Selected zoom : " << zoom << std::endl;
         }
 
         image.resize(Geometry(imageWidth / zoom, imageHeight / zoom));
-        cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
+        // cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
 
         originalImage = image;
 
+        // // Check KMean
+        // kmean(originalImage, DITHER_SIZE, kmeanPalette);
+        // debugPalette(kmeanPalette, "kmeanPalette");
+        // vector<Color> ca(kmeanPalette.size());
+        // writeColormap("colormapk.gif", kmeanPalette, ca);
+
 
         // quantize image to find optimal palette
-        image.quantizeDither(false);
-        image.quantizeColors(DITHER_SIZE);
-        image.quantize();
+        // loop until thomson palette >= DITHER_SIZE
+        // (we can have some duplicate colors (24 bits to 12 bits))
+        // at each iteration, increment magick quantize colors
+        // and convert palette to thomson colospace
+        std::map<string, PALETTE_ENTRY> thomsonPalette;
+        std::map<string, PALETTE_ENTRY> thomsonPaletteCleaned;
+        vector<Color> colorArray/*(palette.size())*/;
+        for (int i = DITHER_SIZE; i < 2 * DITHER_SIZE; i++) {
+            image = originalImage;
+            image.quantizeDither(false);
+            image.quantizeColors(i);
+            image.quantize();
+            // create palette structure
+            getPaletteFromImage(image, palette);
+            colorArray.clear();
+            writeColormap("colormap.gif", palette/*, colorArray*/);
+            cout << "Palette count:" << palette.size() << endl;
 
-        // create palette structure
-        getPaletteFromImage(image, palette);
-
-
-        cout << "*** original Palette [" << palette.size() << "]***"  << endl;
-        for (auto p = palette.begin(); p != palette.end(); p++) {
-            cout << "  Color " << p->first << " at " << (int)(p->second.index) << endl;
+            // debugPalette(palette, "thomson Image palette");
+            int thomsonColorsNotFound = createThomsonPaletteFromRGB(palette, thomsonPalette);
+            cout << "Thomson palette count:" << thomsonColorsNotFound << endl;
+            colorArray.clear();
+            Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette/*, colorArray*/);
+            if (thomsonColorsNotFound <= 0) break;
         }
 
-        // debug informations
+        // if thomson colors count is more than DITHER_SIZE, need to remove extra colors
+        removeExtraColorsFromThomsonPalette(thomsonPalette, thomsonPaletteCleaned);
+
+        // set thomson indexes on palette
+        updateThomsonColorIndexes(thomsonPaletteCleaned);
+        cout << "Final Thomson palette size:" << thomsonPaletteCleaned.size() << endl;
+
+        Image thomsonColormap = writeColormap("thomsonPaletteCleaned.gif", thomsonPaletteCleaned);
+
+        // Some debug informations
         originalImage.write("original.png");
-        vector<Color> colorArray(palette.size());
-        writeColormap("colormap.gif", palette, colorArray);
-        image.write("quantized.gif");
+        writeColormap("colormap.gif", palette);
+        // image.write("quantized.gif");
 
-        // dithering originalImage
+        // dithering original Image in RGB colorspace
         image = floydSteinbergDither(originalImage, palette, &floyd_matrix[USE_MATRIX]);
-        image.write("dithered1.gif");
+        image.write("ditheredrgb.gif");
 
-
-        // Find ImageMagick palette in Thomson color space
-        std::map<string, PALETTE_ENTRY> thomsonPalette;
-        createThomsonPaletteFromRGB(palette, thomsonPalette);
-        Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette, colorArray);
-        cout << "*** Thomson Palette [" << thomsonPalette.size() << "]***"  << endl;
-
-
-        // Dither original with the updated palette
-        image = floydSteinbergDither(originalImage, thomsonPalette, &floyd_matrix[USE_MATRIX]);
-        image.write("dithered2.gif");
+        // Dither original Image with the Thomson colorspace
+        image = floydSteinbergDither(originalImage, thomsonPaletteCleaned, &floyd_matrix[USE_MATRIX]);
+        image.write("ditheredth.gif");
 
         // Create all possible couples from 16 colors colormap
+        createPaletteArray(thomsonPaletteCleaned, colorArray);
         std::vector<std::map<string, PALETTE_ENTRY>> paletteCouples;
         string k;
         for (int i = 0; i < DITHER_SIZE; i++) {
@@ -259,13 +316,13 @@ int ditherImage(string fullpath, int countIndex)
         //     mapImageIterator->write(coupleName.c_str());
         //     idx++;
         // }
-        cout << "Couples found:" << paletteCouples.size() << endl;
+        cout << "Color couples count:" << paletteCouples.size() << endl;
 
         // Process color clash by re-dithering 8 pixels length fragments having color count > 2
         // Try all possible couples, keep best result for each
         Image clashFragment(Geometry(CLASH_SIZE, 1), "white");
         Image reprocessed(Geometry(image.columns(), image.rows()), "white");
-        int totalPixelsClash = 0;
+        int totalSegments = 0;
         int totalClashed = 0;
         MAP_SEG map_40; // SNAP-TO thomson image format container (http://collection.thomson.free.fr/code/articles/prehisto_bulletin/page.php?XI=0&XJ=13)
         uint8_t currentBloc[8];
@@ -282,7 +339,7 @@ int ditherImage(string fullpath, int countIndex)
                 }
                 int countClash = countColors(clashFragment);
                 // printf("%d %d -> %d (%d)\n", x, y, length, countClash);
-                totalPixelsClash++;
+                totalSegments++;
                 if (countClash > 2) {
                     totalClashed++;
                     findNearestClashedFragment(paletteCouples, clashFragment);
@@ -293,7 +350,7 @@ int ditherImage(string fullpath, int countIndex)
                 }
 
                 // convert fragment to thomson planes
-                convertClashFragmentToPaletteIndexedBloc(clashFragment, thomsonPalette, currentBloc, CLASH_SIZE);
+                convertClashFragmentToPaletteIndexedBloc(clashFragment, /*thomsonPalette*/thomsonPaletteCleaned, currentBloc, CLASH_SIZE);
                 uint8_t ret[3];
                 convertBlocToThomson(currentBloc, ret);
                 map_40.rama.push_back(ret[0]);
@@ -304,15 +361,16 @@ int ditherImage(string fullpath, int countIndex)
                     reprocessed.pixelColor(x + i, y, clashFragment.pixelColor(i, 1));
                 }
             }
+            waitAnim();
         }
         // adjust map40 sizes
         map_40.lines = reprocessed.rows();
         map_40.columns = reprocessed.columns() / CLASH_SIZE + (reprocessed.columns() % CLASH_SIZE == 0 ? 0 : 1);
 
-        cout << endl << totalClashed << "/" << totalPixelsClash << " to reprocess" << std::endl;
+        cout << endl << "Processed clashed fragments:" << totalClashed << "/" << totalSegments << std::endl;
         reprocessed.write("thomsonReprocessed.gif");
 
-        save_map_40_col(name.c_str(), map_40, thomsonPalette);
+        save_map_40_col(name.c_str(), map_40, thomsonPaletteCleaned);
 
         // Create thomson sap floppy
         if (countIndex == 0)
@@ -328,14 +386,53 @@ int ditherImage(string fullpath, int countIndex)
 }
 
 
-int main(int argc, char **argv)
+int main(int argc, const char **argv)
 {
     InitializeMagick(*argv);
     initThomsonPalette();
     initThomsonCompensation();
 
-    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/arton5254.jpg", 0);
-    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1);
+    // Read command line arguments
+    string fsOption = "-fs=";
+    string kOption = "-k";
+    int fs = -1;
+    int k = -1;
+    vector<string> filesList;
+    for (int x = 0; x < argc; x++) {
+        // printf("%d = %s\n", x, argv[x]);
+        bool noflag = true;
+        if (string(argv[x]).compare(0, fsOption.size(), fsOption) == 0) {
+            std::string argumentValue = string(argv[x]).substr(fsOption.size());
+            try {
+                fs = std::stoi(argumentValue);
+            } catch (...) {}
+            noflag = false;
+        }
+        if (string(argv[x]).compare(0, kOption.size(), kOption) == 0) {
+            k = 1;
+            noflag = false;
+        }
+        if (noflag && x != 0) {
+            filesList.push_back(string(argv[x]));
+        }
+    }
+
+    cout << "Images list" << endl;
+    for (auto it = filesList.begin(); it != filesList.end(); it++) {
+        cout << *it << endl;
+    }
+    cout << endl;
+
+    int i = 0;
+    for (auto it = filesList.begin(); it != filesList.end(); it++) {
+        ditherImage(*it, i++);
+    }
+
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/arton5254.jpg", 0);
 
     return 0;
 }

@@ -101,7 +101,10 @@ static int thomson_level_magick[16] = { 0, 25600, 35512, 36352, 42728, 45824, 48
 static int rgb_to_to_comp[65536];
 
 void initThomsonPalette();
-void createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette);
+Image createThomsonImageFromRGBImage(const Image &rgbImage);
+void removeExtraColorsFromThomsonPalette(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette);
+int createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette);
+void updateThomsonColorIndexes(map<string, PALETTE_ENTRY> &palette);
 Image createImageFromThomsonPalette();
 Color getColorForPaletteIndex(const map<string, PALETTE_ENTRY> &palette, int index);
 uint16_t getThomsonIndexForPaletteIndex(const map<string, PALETTE_ENTRY> &palette, int index);

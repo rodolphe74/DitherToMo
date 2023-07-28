@@ -1,5 +1,6 @@
 #include "ThomsonStuff.h"
 
+
 void initThomsonPalette()
 {
     int index = 0;
@@ -10,23 +11,143 @@ void initThomsonPalette()
                 index = RED_255[r].thomsonIndex + GREEN_255[g].thomsonIndex + BLUE_255[b].thomsonIndex;
                 // cout << "Color[" << r * g * b << "] = " << endl;
                 THOMSON_PALETTE[index] = {index, currentColor};
-                // cout << "Color[" << index << "] = " << currentColor.quantumRed() << "," << currentColor.quantumGreen() << "," << currentColor.quantumBlue() << endl;
-                cout << "Color[" << index << "] = " << THOMSON_PALETTE[index].color.quantumRed() << "," << THOMSON_PALETTE[index].color.quantumGreen() << "," << THOMSON_PALETTE[index].color.quantumBlue() << endl;
+                // cout << "Color[" << index << "] = " << THOMSON_PALETTE[index].color.quantumRed() << "," << THOMSON_PALETTE[index].color.quantumGreen() << "," << THOMSON_PALETTE[index].color.quantumBlue() << endl;
                 index++;
             }
         }
     }
 }
 
-void createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette)
+Image createThomsonImageFromRGBImage(const Image &rgbImage)
+{
+    float delta = 0;
+    Color selectedColor;
+    Image thomsonImage(Geometry(rgbImage.columns(), rgbImage.rows()), "white");
+    for (int y = 0; y < rgbImage.rows(); y++) {
+        cout << (int) y << endl;
+        for (int x = 0; x < rgbImage.columns(); x++) {
+            Color c = rgbImage.pixelColor(x, y);
+            float shortest = std::numeric_limits<float>::max();
+            for (int i = 0; i < 4096; i++) {
+                delta = preciseColorDelta(c, THOMSON_PALETTE[i].color);
+                if (delta < shortest) {
+                    selectedColor = THOMSON_PALETTE[i].color;
+                    shortest = delta;
+                }
+            }
+            thomsonImage.pixelColor(x, y, selectedColor);
+        }
+
+    }
+    cout << endl;
+    return thomsonImage;
+}
+
+// void removeExtraColorsFromThomsonPalette(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette)
+// {
+//     map<string, PALETTE_ENTRY> paletteCopy;
+//     if (palette.size() <= DITHER_SIZE) {
+//         for (auto it = palette.begin(); it != palette.end(); it++) {
+//             thomsonPalette.insert(*it);
+//         }
+//         return;
+//     }
+//
+//     // too much colors
+//     for (auto it = palette.begin(); it != palette.end(); it++)
+//         paletteCopy.insert(*it);
+//     float delta;
+//     Color lastColor = std::prev(paletteCopy.end())->second.color;
+//     // cout << "###Last color" << getPaletteKey(lastColor) << endl;
+//     do {
+//         // Color lastColor = std::prev(paletteCopy.end())->second.color;
+//         thomsonPalette.clear();
+//         float shortest = std::numeric_limits<float>::max();
+//         string selectedKey;
+//         for (auto it = paletteCopy.begin(); it != paletteCopy.end(); it++) {
+//             delta = preciseColorDelta(lastColor, it->second.color);
+//             if (delta < shortest && it->second.color != lastColor) {
+//                 selectedKey = it->first;
+//                 shortest = delta;
+//             }
+//         }
+// // cout << "###shortest" << shortest << " selectedKey"  << selectedKey << endl;
+//         // rebuild palette less selectedKey
+//         for (auto it = paletteCopy.begin(); it != paletteCopy.end(); it++) {
+//             if (it->first == selectedKey) {
+//                 // cout << "###Removing color" << selectedKey << endl;
+//                 continue;
+//             } else {
+//                 thomsonPalette.insert(*it);
+//             }
+//         }
+//         cout << "thomsonPalette size:" << thomsonPalette.size() << endl;
+//         paletteCopy.clear();
+//         for (auto it = thomsonPalette.begin(); it != thomsonPalette.end(); it++)
+//             paletteCopy.insert(*it);
+//     } while (thomsonPalette.size() > DITHER_SIZE);
+// }
+
+
+void removeExtraColorsFromThomsonPalette(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette)
+{
+
+    if (palette.size() <= DITHER_SIZE) {
+        for (auto it = palette.begin(); it != palette.end(); it++) {
+            thomsonPalette.insert(*it);
+        }
+        return;
+    }
+
+    // too much colors
+    float delta;
+    string selectedKey, otherKey;
+    map<string, PALETTE_ENTRY> paletteCopy;
+    for (auto it = palette.begin(); it != palette.end(); it++)
+        paletteCopy.insert(*it);
+
+    do {
+        // Color lastColor = std::prev(paletteCopy.end())->second.color;
+        thomsonPalette.clear();
+
+        for (auto i = paletteCopy.begin(); i != paletteCopy.end(); i++) {
+            float shortest = std::numeric_limits<float>::max();
+            for (auto j = paletteCopy.begin(); j != paletteCopy.end(); j++) {
+                if (delta < shortest && i->first != j->first) {
+                    delta = preciseColorDelta(i->second.color, j->second.color);
+                    selectedKey = i->first;
+                    shortest = delta;
+                    otherKey = j->first;
+                }
+            }
+        }
+        cout << "Found 2 near color candidates:" << selectedKey << " & " << otherKey << endl;
+        cout << "Removing " << selectedKey << endl;
+        for (auto it = paletteCopy.begin(); it != paletteCopy.end(); it++) {
+            if (it->first == selectedKey) {
+                // cout << "###Removing color" << selectedKey << endl;
+                continue;
+            } else {
+                thomsonPalette.insert(*it);
+            }
+        }
+        cout << "thomsonPalette size:" << thomsonPalette.size() << endl;
+        paletteCopy.clear();
+        for (auto it = thomsonPalette.begin(); it != thomsonPalette.end(); it++)
+            paletteCopy.insert(*it);
+    } while (thomsonPalette.size() > DITHER_SIZE);
+}
+
+
+void updateThomsonColorIndexes(map<string, PALETTE_ENTRY> &palette)
 {
     float delta = 0;
     Color selectedColor;
     uint16_t selectedThomsonIndex = 0;
     uint8_t idx = 0;
-    map<string, int> colorsCount;
     for (auto it = palette.begin(); it != palette.end(); it++) {
         Color c = it->second.color;
+
         float shortest = std::numeric_limits<float>::max();
         for (int i = 0; i < 4096; i++) {
             delta = preciseColorDelta(c, THOMSON_PALETTE[i].color);
@@ -36,31 +157,53 @@ void createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<
                 shortest = delta;
             }
         }
-        cout << "Color " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() << " <-> " << selectedColor.quantumRed() << "," << selectedColor.quantumGreen() << ","  << selectedColor.quantumBlue() << endl;
+        // cout << "shortest " << shortest <<  "  -  "  << selectedThomsonIndex <<  endl;
+        string k = getPaletteKey(selectedColor);
+        palette[k] = {selectedColor, idx, selectedThomsonIndex};
+        idx++;
+    }
+}
+
+
+int createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<string, PALETTE_ENTRY> &thomsonPalette)
+{
+    float delta = 0;
+    Color selectedColor;
+    uint16_t selectedThomsonIndex = 0;
+    uint8_t idx = 0;
+    map<string, int> colorsCount;
+    thomsonPalette.clear();
+    for (auto it = palette.begin(); it != palette.end(); it++) {
+        Color c = it->second.color;
+
+        float shortest = std::numeric_limits<float>::max();
+        for (int i = 0; i < 4096; i++) {
+            delta = preciseColorDelta(c, THOMSON_PALETTE[i].color);
+            if (delta < shortest) {
+                selectedColor = THOMSON_PALETTE[i].color;
+                selectedThomsonIndex = THOMSON_PALETTE[i].thomsonIndex;
+                shortest = delta;
+            }
+        }
         string k = getPaletteKey(selectedColor);
         auto inserted = thomsonPalette.insert(std::pair<string, PALETTE_ENTRY>(k, {selectedColor, idx, selectedThomsonIndex}));
         if (inserted.second == true) {
             idx++;
         }
     }
-    // for (auto it = thomsonPalette.begin(); it != thomsonPalette.end(); it++) {
-    //     cout << "  " << it->first << " = " << it->second.thomsonIndex << endl;
-    // }
+
+    int colorsLeft = DITHER_SIZE - thomsonPalette.size();
 
     // padding
-    // for (int i = thomsonPalette.size(); i < DITHER_SIZE; i++) {
     idx = thomsonPalette.size();
-    while (thomsonPalette.size() != DITHER_SIZE) {
+    while (thomsonPalette.size() < DITHER_SIZE) {
         Color c = THOMSON_PALETTE[2048 + idx].color;
         selectedThomsonIndex = THOMSON_PALETTE[2048 + idx].thomsonIndex;
-        cout << "  Padding:" << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() <<  " at " <<  (int) idx <<endl;
+        cout << "Padding " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() <<  " at " <<  (int) idx <<endl;
         string k = getPaletteKey(c);
         thomsonPalette.insert(std::pair<string, PALETTE_ENTRY>(k, {c, idx++, selectedThomsonIndex}));
     }
-
-    for (auto it = thomsonPalette.begin(); it != thomsonPalette.end(); it++) {
-        cout << (int)  it->second.index << " = " << it->first << " = " << it->second.thomsonIndex << endl;
-    }
+    return colorsLeft;
 }
 
 Image createImageFromThomsonPalette()
@@ -73,13 +216,7 @@ Image createImageFromThomsonPalette()
             paletteImage.fillColor(THOMSON_PALETTE[idx].color);
             DrawableRectangle rect(x, y, x + step, y + step);
             paletteImage.draw(rect);
-            cout << "idx:" << idx << "=(" << THOMSON_PALETTE[idx].color.quantumRed() << "," << THOMSON_PALETTE[idx].color.quantumGreen() << "," << THOMSON_PALETTE[idx].color.quantumBlue() << ")" << endl;
-
-            // if (THOMSON_PALETTE[idx].color.quantumRed()!= 0 && THOMSON_PALETTE[idx].color.quantumRed()!= 24672 && THOMSON_PALETTE[idx].color.quantumRed() == THOMSON_PALETTE[idx].color.quantumBlue() && THOMSON_PALETTE[idx].color.quantumRed() == THOMSON_PALETTE[idx].color.quantumGreen()) {
-            //     cout << "**********" << endl;
-            //     return paletteImage;
-            // }
-
+            // cout << "idx:" << idx << "=(" << THOMSON_PALETTE[idx].color.quantumRed() << "," << THOMSON_PALETTE[idx].color.quantumGreen() << "," << THOMSON_PALETTE[idx].color.quantumBlue() << ")" << endl;
             idx++;
         }
     }
@@ -175,7 +312,6 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
         size++;
     }
 
-
     unsigned char header[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     header[2] = size & 255;
@@ -185,18 +321,16 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
     header[6] = map_40.columns - 1;
     header[7] = (map_40.lines - 1) / 8;  // Le fichier map ne fonctionne que sur multiple de 8
 
-    cout << "ToSnap resolution:" << (int) header[6] << "*" << (int) header[7] << endl;
+    // cout << "ToSnap resolution:" << (int) header[6] << "*" << (int) header[7] << endl;
 
     fwrite(header, sizeof(uint8_t), 8, fout);
 
     // Ecriture du buffer map compressé dans le fichier de sortie
-    cout << "ToSnap buffer size:" << target_buffer_list.size() << endl;
+    // cout << "ToSnap buffer size:" << target_buffer_list.size() << endl;
     for (int i = 0; i < target_buffer_list.size(); i++) {
         current = target_buffer_list.at(i);
         fwrite(&current, sizeof(uint8_t), 1, fout);
     }
-
-
 
     // Ecriture footer TO-SNAP
     uint8_t to_snap[40];
@@ -207,21 +341,11 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
     to_snap[4] = 0; // mode 3 console
 
     for (int i = 0; i < palette.size(); i++) {
-        // Color c = getColorForPaletteIndex(palette, i);
-        // r = c.quantumRed();
-        // g = c.quantumGreen();
-        // b = c.quantumBlue();
-        // short thomson_palette_value = getPaletteThomsonValue(r, g, b);
         uint16_t thomson_palette_value = getThomsonIndexForPaletteIndex(palette, i);
         cout << "thomson_palette_value:" << thomson_palette_value << endl;
-        // printf("BM40 - Couleur %d %d %d = %d\n", r, g, b, thomson_palette_value);
         to_snap[5 + i * 2] = (thomson_palette_value >> 8) & 255;
         to_snap[5 + i * 2 + 1] = thomson_palette_value & 255;
-
-        // to_snap[5 + i * 2] = (thomson_palette_value >> 8) & 255;
-        // to_snap[5 + i * 2 + 1] = thomson_palette_value & 255;
     }
-
 
     to_snap[37] = 0xA5;
     to_snap[38] = 0x5A;
@@ -237,7 +361,7 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
     fflush(fout);
     fclose(fout);
 
-    printf("Le fichier TO-SNAP est créé\n");
+    printf("TO-SNAP created\n");
 
     // // Ecriture du chargeur TO-SNAP
     // char fname_snap_out[256];
@@ -269,7 +393,7 @@ void convertBlocToThomson(uint8_t bloc[8], uint8_t thomson_bloc[3])
     // thomson_bloc[0] = forme
     // thomson_bloc[1] = couleurs format TO
     // thomson_bloc[2] = couleurs format MO
-    // En basic, le format de la oouleur est spécifié en fonction de la config TO/MO
+    // En basic, le format de la couleur est spécifié en fonction de la config TO/MO
     // En SNAP-TO, le format de la couleur est toujours TO
 
     // recherche des couleurs
@@ -307,18 +431,9 @@ void transposeDataMap40(int columns, int lines, const vector<uint8_t> &src, vect
 
     for (int x = 0; x < columns; x++) {
         for (int y = 0; y < lines; y++) {
-            // list_get_at(&current, *src, y * columns + x);
             current = src.at(y * columns + x);
-            // if (y == 1 && x > 30) {
-            // 	printf("transpose (%d %d) = %d\n", x, current, list_size(*target));
-            // }
-            // list_add_last(*target, &current);
             target.push_back(current);
         }
-
-        // if (padding)
-        // 	for (int y = 0; y < add_line; y++)
-        // 		list_add_last(*target, &zero);
 
         if (padding)
             for (int y = 0; y < add_line; y++)
