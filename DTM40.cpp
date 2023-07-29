@@ -19,6 +19,9 @@
 
 using namespace std;
 
+#define RESULT_SIZE_X 320.0
+#define RESULT_SIZE_Y 200.0
+
 static int iterAnim = 0;
 
 void debugPalette(const map<string, PALETTE_ENTRY> &palette, const string &paletteName)
@@ -160,6 +163,7 @@ void findNearestClashedFragment(std::vector<std::map<string, PALETTE_ENTRY>> pal
     for (auto paletteIterator = paletteCouples.begin(); paletteIterator != paletteCouples.end(); paletteIterator++) {
         Image ditherFragment = fragment;
         ditherFragment = floydSteinbergDither(ditherFragment, *paletteIterator, &floyd_matrix[USE_MATRIX]);
+        // ditherFragment = ostromoukhov_dither(ditherFragment, *paletteIterator);
         double currentDiff = compareFragment(ditherFragment, fragment);
         if (currentDiff < diff) {
             diff = currentDiff;
@@ -282,10 +286,12 @@ int ditherImage(string fullpath, int countIndex)
 
         // dithering original Image in RGB colorspace
         image = floydSteinbergDither(originalImage, palette, &floyd_matrix[USE_MATRIX]);
+        // image = ostromoukhov_dither(originalImage, palette);
         image.write("ditheredrgb.gif");
 
         // Dither original Image with the Thomson colorspace
         image = floydSteinbergDither(originalImage, thomsonPaletteCleaned, &floyd_matrix[USE_MATRIX]);
+        // image = ostromoukhov_dither(originalImage, thomsonPaletteCleaned);
         image.write("ditheredth.gif");
 
         // Create all possible couples from 16 colors colormap

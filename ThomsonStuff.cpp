@@ -199,7 +199,7 @@ int createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<s
     while (thomsonPalette.size() < DITHER_SIZE) {
         Color c = THOMSON_PALETTE[2048 + idx].color;
         selectedThomsonIndex = THOMSON_PALETTE[2048 + idx].thomsonIndex;
-        cout << "Padding " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() <<  " at " <<  (int) idx <<endl;
+        cout << "Padding " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() <<  " at " << (int) idx << endl;
         string k = getPaletteKey(c);
         thomsonPalette.insert(std::pair<string, PALETTE_ENTRY>(k, {c, idx++, selectedThomsonIndex}));
     }
@@ -383,6 +383,105 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
     // fclose(tosnap_out);
 //
     // fflush(stdout);
+}
+
+
+void save_map_16(const string &filename, const MAP_SEG &map_16, int x_count, const map<string, PALETTE_ENTRY> &palette)
+{
+    int lines_count = map_16.lines * 8;
+
+    int r, g, b;
+
+    FILE *fout;
+    char map_filename[256];
+
+    sprintf(map_filename, "%s.map", filename.c_str());
+    if ((fout = fopen(map_filename, "wb")) == NULL) {
+        fprintf(stderr, "Impossible d'ouvrir le fichier données en écriture\n");
+        return;
+    }
+
+    vector<uint8_t> buffer_list, target_buffer_list;
+
+    for (int x = 0; x < x_count; x++) {
+        for (int y = 0; y < lines_count; y++) {
+            uint8_t two_pixels_a;
+            two_pixels_a =  map_16.rama[x * lines_count + y];
+            buffer_list.push_back(two_pixels_a);
+        }
+
+        for (int y = 0; y < lines_count; y++) {
+            uint8_t two_pixels_b;
+            two_pixels_b = map_16.ramb[x * lines_count + y];
+            buffer_list.push_back(two_pixels_b);
+        }
+    }
+
+    // Compression des RAMA/RAMB entrelacés sans cloture
+    compress(target_buffer_list, fout, buffer_list, 1);
+
+    // cloture rama/ramb
+    uint8_t cloture[4] = { 0, 0, 0, 0 };
+    target_buffer_list.push_back(cloture[0]);
+    target_buffer_list.push_back(cloture[1]);
+    target_buffer_list.push_back(cloture[2]);
+    target_buffer_list.push_back(cloture[3]);
+
+    // Ecriture de l'entete
+    uint16_t size = (uint16_t)(target_buffer_list.size() + 3 + 39);
+
+    if (size % 2 == 1) {
+        // Apparement, la taille doit être paire
+        unsigned char zero = 0;
+        target_buffer_list.push_back(zero);
+        size++;
+    }
+
+    uint8_t header[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    header[2] = size & 255;
+    header[1] = (size >> 8) & 255;
+    header[5] = 0x40;       // BM16
+    header[6] = map_16.columns - 1;
+    header[7] = map_16.lines - 1;
+    fwrite(header, sizeof(unsigned char), 8, fout);
+
+    // Ecriture du buffer map compressé dans le fichier de sortie
+    uint8_t current;
+
+    for (int i = 0; i < target_buffer_list.size(); i++) {
+        current = target_buffer_list[i];
+        fwrite(&current, sizeof(unsigned char), 1, fout);
+    }
+
+    // Ecriture footer TO-SNAP
+    uint8_t to_snap[40];
+
+    memset(to_snap, 0, 39);
+    // to_snap[0] = 0x40; // BM16
+    to_snap[0] = 0x80;      // ?
+    to_snap[2] = 0;         // tour de l'écran
+    to_snap[4] = 3;         // mode 3 console
+
+    for (int i = 0; i < palette.size(); i++) {
+        uint16_t thomson_palette_value = getThomsonIndexForPaletteIndex(palette, i);
+        cout << "thomson_palette_value:" << thomson_palette_value << endl;
+        to_snap[5 + i * 2] = (thomson_palette_value >> 8) & 255;
+        to_snap[5 + i * 2 + 1] = thomson_palette_value & 255;
+    }
+
+    to_snap[37] = 0xA5;
+    to_snap[38] = 0x5A;
+    fwrite(to_snap, sizeof(unsigned char), 39, fout);
+
+    // Ecriture du footer
+    unsigned char footer[] = { 0, 0, 0, 0, 0 };
+
+    footer[0] = 255;
+    fwrite(footer, sizeof(unsigned char), 5, fout);
+
+    fflush(fout);
+    fclose(fout);
 }
 
 

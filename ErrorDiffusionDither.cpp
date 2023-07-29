@@ -95,6 +95,73 @@ Image ostromoukhov_dither(const Image &source, const map<string, PALETTE_ENTRY> 
 {
     int w = source.columns();
     int h = source.rows();
-    Image edImage(Geometry(w, h), "white");
-    return edImage;
+    Image target(source);
+
+    // cout << w << "x" << h << "x" << palette.size() << endl;
+
+    Color oldPixel, newPixel;
+    int32_t error_propagation[3];
+
+    int serpentine = 1;
+    int serpentine_x = 0;
+    int left_to_right = 1;
+    int shift;
+
+
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            if (serpentine) {
+                if ((y + 1) % 2) {
+                    serpentine_x = x;
+                    left_to_right = 1;
+                } else {
+                    serpentine_x = w - 1 - x;
+                    left_to_right = 0;
+                }
+            } else {
+                serpentine_x = x;
+            }
+
+            oldPixel.quantumRed(target.pixelColor(serpentine_x, y).quantumRed());
+            oldPixel.quantumGreen(target.pixelColor(serpentine_x, y).quantumGreen());
+            oldPixel.quantumBlue(target.pixelColor(serpentine_x, y).quantumBlue());
+
+            Color p(oldPixel.quantumRed(), oldPixel.quantumGreen(), oldPixel.quantumBlue());
+            newPixel = findCorrectedClosestColorFromPalette(p, palette);
+
+            target.pixelColor(serpentine_x, y, newPixel);
+            // cout << "("<< serpentine_x << "," << y << ")" << oldPixel.quantumRed()<< "," << oldPixel.quantumGreen()<< "," << oldPixel.quantumBlue() << " -> "<< newPixel.quantumRed()<< "," << newPixel.quantumGreen()<< "," << newPixel.quantumBlue() << endl;
+
+            error_propagation[0] = oldPixel.quantumRed() - newPixel.quantumRed();
+            error_propagation[1] = oldPixel.quantumGreen() - newPixel.quantumGreen();
+            error_propagation[2] = oldPixel.quantumBlue() - newPixel.quantumBlue();
+
+            int intensity = (int)round(oldPixel.quantumRed() * 0.299 + 0.587 * oldPixel.quantumGreen() + 0.114 * oldPixel.quantumBlue());
+            intensity /= 257;
+
+            OSTRO_COEFS oc = OSTRO_COEFS_ARRAY[intensity];
+
+            // cout << serpentine_x << "," << y << endl;
+
+            Color c;
+            if (left_to_right) {
+                shift = 1;
+                if (serpentine_x + shift >= 0 && serpentine_x + shift < w) {
+                    // cout << serpentine_x + shift << "," << y << " s:" << left_to_right <<  endl;
+                    c = apply_error(target.pixelColor(shift + serpentine_x, y), oc.i_r / (float)oc.i_sum, error_propagation);
+                    target.pixelColor(shift + serpentine_x, y, c);
+                }
+            } else {
+                shift = -1;
+                if (serpentine_x + shift >= 0 && serpentine_x + shift < w) {
+                    // cout << serpentine_x + shift << "," << y << " s:" << left_to_right <<  endl;
+                    c = apply_error(target.pixelColor(shift + serpentine_x, y), oc.i_r / (float)oc.i_sum, error_propagation);
+                    target.pixelColor(shift + serpentine_x, y, c);
+                }
+            }
+        }
+    }
+
+    return target;
+
 }
