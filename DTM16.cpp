@@ -230,8 +230,6 @@ int ditherImage(string fullpath, int countIndex)
             // std::cout << "Selected zoom : " << zoom << std::endl;
         }
 
-        cout << imageHeight / zoom << endl;
-        //image.resize(Geometry(imageWidth / (zoom * 2), imageHeight / zoom));
         string size = to_string(imageWidth / (zoom * 2)).append("x").append(to_string(imageHeight / zoom).append("!"));
         image.resize(size);
         cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
@@ -266,7 +264,7 @@ int ditherImage(string fullpath, int countIndex)
 
             // debugPalette(palette, "thomson Image palette");
             int thomsonColorsNotFound = createThomsonPaletteFromRGB(palette, thomsonPalette);
-            cout << "Thomson palette count:" << thomsonColorsNotFound << endl;
+            cout << "Thomson remaining:" << thomsonColorsNotFound << endl;
             colorArray.clear();
             Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette/*, colorArray*/);
             if (thomsonColorsNotFound <= 0) break;

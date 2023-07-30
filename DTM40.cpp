@@ -125,28 +125,32 @@ uint32_t countColors(const Image &image)
 }
 
 
-double ColorCompare(int r1, int g1, int b1, int r2, int g2, int b2)
-{
-    double range = (float) INT16_MAX;
-
-    double luma1 = (r1 * 299 + g1 * 587 + b1 * 114) / (range * 1000);
-    double luma2 = (r2 * 299 + g2 * 587 + b2 * 114) / (range * 1000);
-    double lumadiff = luma1 - luma2;
-    double diffR = (r1 - r2) / 255.0, diffG = (g1 - g2) / 255.0, diffB = (b1 - b2) / 255.0;
-    return (diffR * diffR * 0.299 + diffG * diffG * 0.587 + diffB * diffB * 0.114) * 0.75
-           + lumadiff * lumadiff;
-}
+// double ColorCompare(int r1, int g1, int b1, int r2, int g2, int b2)
+// {
+//     double range = (float) INT16_MAX;
+//
+//     double luma1 = (r1 * 299 + g1 * 587 + b1 * 114) / (range * 1000);
+//     double luma2 = (r2 * 299 + g2 * 587 + b2 * 114) / (range * 1000);
+//     double lumadiff = luma1 - luma2;
+//     double diffR = (r1 - r2) / 255.0, diffG = (g1 - g2) / 255.0, diffB = (b1 - b2) / 255.0;
+//     return (diffR * diffR * 0.299 + diffG * diffG * 0.587 + diffB * diffB * 0.114) * 0.75
+//            + lumadiff * lumadiff;
+// }
 
 
 double compareFragment(const Image &first, const Image &second)
 {
     double result = 0.0;
+    double compare;
     // double multiplier[] = {1.0 * 256.0, 2.0 * 256.0, 4.0 * 256.0, 8.0 * 256.0, 16.0 * 256.0, 32.0 * 256.0, 64.0 * 256.0, 128.0 * 256.0};
     for (int x = 0; x < 8; x++) {
         Color c1 = first.pixelColor(x, 0);
         Color c2 = second.pixelColor(x, 0);
-        double compare = ColorCompare(c1.quantumRed(), c1.quantumGreen(), c1.quantumBlue(),
-                                      c2.quantumRed(), c2.quantumGreen(), c2.quantumBlue());
+        // /*double*/ compare = ColorCompare(c1.quantumRed(), c1.quantumGreen(), c1.quantumBlue(),
+        //                               c2.quantumRed(), c2.quantumGreen(), c2.quantumBlue());
+
+        compare = (double) preciseColorDelta(c1, c2);
+
         //compare *= multiplier[x];
         result += compare;
     }
@@ -264,7 +268,7 @@ int ditherImage(string fullpath, int countIndex)
 
             // debugPalette(palette, "thomson Image palette");
             int thomsonColorsNotFound = createThomsonPaletteFromRGB(palette, thomsonPalette);
-            cout << "Thomson palette count:" << thomsonColorsNotFound << endl;
+            cout << "Thomson remaining:" << thomsonColorsNotFound << endl;
             colorArray.clear();
             Image thomsonColormap = writeColormap("thomsonColormap.gif", thomsonPalette/*, colorArray*/);
             if (thomsonColorsNotFound <= 0) break;
@@ -340,11 +344,9 @@ int ditherImage(string fullpath, int countIndex)
 
                 for (int i = 0; i < length; i++) {
                     Color c = image.pixelColor(x + i, y);
-                    // clashFragment.pixelColor(i, 0, *(pp + i));
                     clashFragment.pixelColor(i, 0, c);
                 }
                 int countClash = countColors(clashFragment);
-                // printf("%d %d -> %d (%d)\n", x, y, length, countClash);
                 totalSegments++;
                 if (countClash > 2) {
                     totalClashed++;
@@ -356,7 +358,7 @@ int ditherImage(string fullpath, int countIndex)
                 }
 
                 // convert fragment to thomson planes
-                convertClashFragmentToPaletteIndexedBloc(clashFragment, /*thomsonPalette*/thomsonPaletteCleaned, currentBloc, CLASH_SIZE);
+                convertClashFragmentToPaletteIndexedBloc(clashFragment, thomsonPaletteCleaned, currentBloc, CLASH_SIZE);
                 uint8_t ret[3];
                 convertBlocToThomson(currentBloc, ret);
                 map_40.rama.push_back(ret[0]);

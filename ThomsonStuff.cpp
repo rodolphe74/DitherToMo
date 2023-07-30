@@ -113,8 +113,8 @@ void removeExtraColorsFromThomsonPalette(const map<string, PALETTE_ENTRY> &palet
         for (auto i = paletteCopy.begin(); i != paletteCopy.end(); i++) {
             float shortest = std::numeric_limits<float>::max();
             for (auto j = paletteCopy.begin(); j != paletteCopy.end(); j++) {
+                delta = preciseColorDelta(i->second.color, j->second.color);
                 if (delta < shortest && i->first != j->first) {
-                    delta = preciseColorDelta(i->second.color, j->second.color);
                     selectedKey = i->first;
                     shortest = delta;
                     otherKey = j->first;
@@ -199,7 +199,7 @@ int createThomsonPaletteFromRGB(const map<string, PALETTE_ENTRY> &palette, map<s
     while (thomsonPalette.size() < DITHER_SIZE) {
         Color c = THOMSON_PALETTE[2048 + idx].color;
         selectedThomsonIndex = THOMSON_PALETTE[2048 + idx].thomsonIndex;
-        cout << "Padding " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() <<  " at " << (int) idx << endl;
+        // cout << "Padding " << c.quantumRed() << "," << c.quantumGreen() << "," << c.quantumBlue() <<  " at " << (int) idx << endl;
         string k = getPaletteKey(c);
         thomsonPalette.insert(std::pair<string, PALETTE_ENTRY>(k, {c, idx++, selectedThomsonIndex}));
     }
@@ -293,12 +293,12 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
     }
 
     transposeDataMap40(map_40.columns, map_40.lines, map_40.rama, buffer_list);
-    compress(target_buffer_list, fout, buffer_list, 1);
+    compress(target_buffer_list, buffer_list, 1);
 
     buffer_list.clear();
 
     transposeDataMap40(map_40.columns, map_40.lines, map_40.ramb, buffer_list);
-    compress(target_buffer_list, fout, buffer_list, 1);
+    compress(target_buffer_list, buffer_list, 1);
 
     // Ecriture de l'entete
     // unsigned short size = (unsigned short)list_size(target_buffer_list) + 3 + 39;
@@ -342,7 +342,7 @@ void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<st
 
     for (int i = 0; i < palette.size(); i++) {
         uint16_t thomson_palette_value = getThomsonIndexForPaletteIndex(palette, i);
-        cout << "thomson_palette_value:" << thomson_palette_value << endl;
+        cout << "thomson[" << i << "]=" << thomson_palette_value << endl;
         to_snap[5 + i * 2] = (thomson_palette_value >> 8) & 255;
         to_snap[5 + i * 2 + 1] = thomson_palette_value & 255;
     }
@@ -418,7 +418,7 @@ void save_map_16(const string &filename, const MAP_SEG &map_16, int x_count, con
     }
 
     // Compression des RAMA/RAMB entrelacés sans cloture
-    compress(target_buffer_list, fout, buffer_list, 1);
+    compress(target_buffer_list, buffer_list, 1);
 
     // cloture rama/ramb
     uint8_t cloture[4] = { 0, 0, 0, 0 };
@@ -442,7 +442,8 @@ void save_map_16(const string &filename, const MAP_SEG &map_16, int x_count, con
     header[2] = size & 255;
     header[1] = (size >> 8) & 255;
     header[5] = 0x40;       // BM16
-    header[6] = map_16.columns - 1;
+    //header[6] = map_16.columns - 1;
+    header[6] = (x_count * 2) - 1;
     header[7] = map_16.lines - 1;
     fwrite(header, sizeof(unsigned char), 8, fout);
 
@@ -465,7 +466,7 @@ void save_map_16(const string &filename, const MAP_SEG &map_16, int x_count, con
 
     for (int i = 0; i < palette.size(); i++) {
         uint16_t thomson_palette_value = getThomsonIndexForPaletteIndex(palette, i);
-        cout << "thomson_palette_value:" << thomson_palette_value << endl;
+        cout << "thomson[" << i << "]=" << thomson_palette_value << endl;
         to_snap[5 + i * 2] = (thomson_palette_value >> 8) & 255;
         to_snap[5 + i * 2 + 1] = thomson_palette_value & 255;
     }
@@ -578,7 +579,7 @@ void writeSegment(vector<uint8_t> &target, const vector<uint8_t> &buffer_list, i
 }
 
 
-void compress(vector<uint8_t> &target, FILE *f, const vector<uint8_t> &buffer_list, int enclose)
+void compress(vector<uint8_t> &target, const vector<uint8_t> &buffer_list, int enclose)
 {
     // Traitement du buffer;
     int i = 0;

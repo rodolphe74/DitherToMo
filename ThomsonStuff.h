@@ -116,6 +116,6 @@ void convertBlocToThomson(uint8_t bloc[8], uint8_t thomson_bloc[3]);
 void transposeDataMap40(int columns, int lines, const vector<uint8_t> &src, vector<uint8_t> &target);
 int readAhead(const vector<uint8_t> &buffer_list, int idx);
 void writeSegment(vector<uint8_t> &target, const vector<uint8_t> &buffer_list, int i, uint8_t seg_size);
-void compress(vector<uint8_t> &target, FILE *f, const vector<uint8_t> &buffer_list, int enclose);
+void compress(vector<uint8_t> &target, const vector<uint8_t> &buffer_list, int enclose);
 int getIndexColorThomsonTo(int back_index, int fore_index);
 int getIndexColorThomsonMo(int back_index, int fore_index);
