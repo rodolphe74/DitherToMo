@@ -1,5 +1,5 @@
 #include "ThomsonStuff.h"
-
+#include <fstream>
 
 void initThomsonPalette()
 {
@@ -483,6 +483,31 @@ void save_map_16(const string &filename, const MAP_SEG &map_16, int x_count, con
 
     fflush(fout);
     fclose(fout);
+}
+
+
+void streamMapC(ofstream &os, const string &name, const vector<uint8_t> &map, const string &suffix)
+{
+    int charLineCount = 0;
+    int charCount = 0;
+    char hex[8] = {0};
+    os << "unsigned char " << name << "_" << suffix << "[] = {" << endl;
+    for (auto i = map.begin(); i != map.end(); i++) {
+        if (charLineCount == 12) {
+            os << endl;
+            charLineCount = 0;
+        }
+        uint8_t u = (uint8_t) * i;
+        sprintf(hex, "0x%02x", u);
+        os << hex << (charCount < map.size() - 1 ?  ", " : "");
+
+        charLineCount++;
+        charCount++;
+    }
+    os << endl << "};" << endl;
+
+    os << "unsigned int thomsonColormap_" << suffix << "_len = " << map.size() << ";" << endl;
+    os << endl;
 }
 
 
