@@ -1,9 +1,11 @@
 # DitherToMo
 Dither image to the Thomson bitmap 40 (320x200 16 colors with color clash) graphic mode.
 
-
 <img src="images/original.png">   <img src="images/thomsonReprocessed.gif">
 
+Or to the Thomson bitmap 16 (320x200 16 colors without constraint) graphic mode.
+
+<img src="images/original.png">   <img src="images/ditheredth16.gif">
 
 Rely on [ImageMagick 7](https://github.com/ImageMagick/ImageMagick) :
 
