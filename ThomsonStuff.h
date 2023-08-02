@@ -112,7 +112,7 @@ void initThomsonCompensation();
 int getPaletteThomsonValue(int r, int g, int b);
 void save_map_40_col(const string &filename, const MAP_SEG &map_40, const map<string, PALETTE_ENTRY> &palette);
 void save_map_16(const string &filename, const MAP_SEG &map_16, int x_count, const map<string, PALETTE_ENTRY> &palette);
-void streamMapC(ofstream &os, const string &name, const vector<uint8_t> &map, const string &suffix);
+void streamMapC(ofstream &os, const vector<uint8_t> &map);
 void convertBlocToThomson(uint8_t bloc[8], uint8_t thomson_bloc[3]);
 void transposeDataMap40(int columns, int lines, const vector<uint8_t> &src, vector<uint8_t> &target);
 int readAhead(const vector<uint8_t> &buffer_list, int idx);

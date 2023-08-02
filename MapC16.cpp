@@ -342,24 +342,37 @@ int ditherImage(string fullpath, int countIndex)
 
         string cname = name + ".h";
         ofstream os(cname);
-        // Palette
-        os << "unsigned int " << name << "_pal[] = {" << endl;
+        // Structs
+        os << "struct " << name << "_struct {" << endl;
+
+        // struct declaration
+        os << "\t" << "unsigned int " << "pal[16];" << endl;
+        os << "\t" << "unsigned char " << "x;" << endl;
+        os << "\t" << "unsigned char " << "w;" << endl;
+        os << "\t" << "unsigned char " << "h;" << endl;
+        os << "\t" << "unsigned char mapa[" << map_16.rama.size() << "];" << endl;
+        os << "\t" << "unsigned int " << "lena;" << endl;
+        os << "\t" << "unsigned char mapb[" << map_16.ramb.size() << "];" << endl;
+        os << "\t" << "unsigned int " << "lenb;" << endl;
+        os << "}; " << endl;
+
+        // struct initialization
+        os << "struct " << name << "_struct " << name << " = {" << endl;
+        os << "\t" << "{ ";
         for (auto p = thomsonPaletteCleaned.begin(); p != thomsonPaletteCleaned.end(); p++) {
             uint16_t thomsonIndex = p->second.thomsonIndex;
-            os <<  thomsonIndex << (next(p) == thomsonPaletteCleaned.end() ? "" : ", ");
+            os << "\t" <<  thomsonIndex << (next(p) == thomsonPaletteCleaned.end() ? "" : ",");
         }
-        os << endl << "};" << endl << endl;
-        // Sizes
-        os << "unsigned int " << name << "_x = " << xCount << ";" << endl;
-        os << "unsigned int " << name << "_w = " << xCount * 4 << ";" << endl;
-        os << "unsigned int " << name << "_h = " << map_16.lines * 8 << ";" << endl << endl;
-        // Maps
-        streamMapC(os, name, map_16.rama, "mapa");
+        os << " }," << endl;
+        os << "\t" << xCount << "," << endl;
+        os << "\t" << xCount * 4 << "," << endl;
+        os << "\t" << map_16.lines * 8 << "," << endl;
         os << endl;
-        streamMapC(os, name, map_16.ramb, "mapb");
+        streamMapC(os, map_16.rama);
+        os << endl;
+        streamMapC(os, map_16.ramb);
+        os << "};";
         os.close();
-
-
 
     } catch (Exception &error_) {
         cout << "Caught exception: " << error_.what() << endl;
