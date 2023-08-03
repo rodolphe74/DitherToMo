@@ -218,6 +218,10 @@ int ditherImage(string fullpath, int countIndex)
         imageWidth = (uint32_t) image.columns();
         imageHeight = (uint32_t) image.rows();
 
+
+
+
+
         if (imageWidth > RESULT_SIZE_X) {
             zoomx = imageWidth / RESULT_SIZE_X;
         }
@@ -228,11 +232,33 @@ int ditherImage(string fullpath, int countIndex)
             // std::cout << "Zoom x|y : " << zoomx << "|" << zoomy << std::endl;
             zoom = std::max(zoomx, zoomy);
             // std::cout << "Selected zoom : " << zoom << std::endl;
+            string size = to_string(imageWidth / (zoom * 2)).append("x").append(to_string(imageHeight / zoom).append("!"));
+            image.resize(size);
+            cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
+        } else {
+            zoom = 1;
+            string size = to_string(imageWidth / 2).append("x").append(to_string(imageHeight).append("!"));
+            image.resize(size);
+            image.write("resized.png");
+            cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
         }
 
-        string size = to_string(imageWidth / (zoom * 2)).append("x").append(to_string(imageHeight / zoom).append("!"));
-        image.resize(size);
-        cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
+
+
+        // if (imageWidth > RESULT_SIZE_X) {
+        //     zoomx = imageWidth / RESULT_SIZE_X;
+        // }
+        // if (imageHeight > RESULT_SIZE_Y) {
+        //     zoomy = imageHeight / RESULT_SIZE_Y;
+        // }
+        // if (zoomx != 0 || zoomy != 0) {
+        //     // std::cout << "Zoom x|y : " << zoomx << "|" << zoomy << std::endl;
+        //     zoom = std::max(zoomx, zoomy);
+        //     // std::cout << "Selected zoom : " << zoom << std::endl;
+        // }
+        // string size = to_string(imageWidth / (zoom * 2)).append("x").append(to_string(imageHeight / zoom).append("!"));
+        // image.resize(size);
+        // cout << "Image new size:" << image.columns() << "," << image.rows() << endl;
 
         originalImage = image;
 
@@ -303,25 +329,64 @@ int ditherImage(string fullpath, int countIndex)
         int xCount = 0;
         for (int x = 0; x < map_16.columns * 2; x += 4) {
             for (int y = 0; y < map_16.lines * 8; y++) {
-                // RAMA
-                Color c = image.pixelColor(x, y);
-                string k = getPaletteKey(c);
-                idxOne = thomsonPaletteCleaned.at(k).index;
 
-                c = image.pixelColor(x + 1, y);
-                k = getPaletteKey(c);
-                idxTwo = thomsonPaletteCleaned.at(k).index;
+                // cout << " *" << x << "," << y << " - " << imageWidth << " - " << image.columns() << endl;
+                // cout << "I0:" << image.pixelColor(x + 0, y).quantumRed()
+                //      << "," << image.pixelColor(x + 0, y).quantumGreen()
+                //      << "," << image.pixelColor(x + 0, y).quantumBlue() << endl;
+                // cout << "I1:" << image.pixelColor(x + 1, y).quantumRed()
+                //      << "," << image.pixelColor(x + 1, y).quantumGreen()
+                //      << "," << image.pixelColor(x + 1, y).quantumBlue() << endl;
+                // cout << "I2:" << image.pixelColor(x + 2, y).quantumRed()
+                //      << "," << image.pixelColor(x + 2, y).quantumGreen()
+                //      << "," << image.pixelColor(x + 2, y).quantumBlue() << endl;
+                // cout << "I3:" << image.pixelColor(x + 3, y).quantumRed()
+                //      << "," << image.pixelColor(x + 3, y).quantumGreen()
+                //      << "," << image.pixelColor(x + 3, y).quantumBlue() << endl;
+
+                Color c;
+                string k;
+
+                // RAMA
+                if (x < image.columns()) {
+                    c = image.pixelColor(x, y);
+                    k = getPaletteKey(c);
+                    idxOne = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 0 << "," << y << "=" << "0" << endl;
+                    idxOne = 0;
+                }
+
+                if (x + 1 < image.columns()) {
+                    c = image.pixelColor(x + 1, y);
+                    k = getPaletteKey(c);
+                    idxTwo = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 1 << "," << y << "=" << "0" << endl;
+                    idxTwo = 0;
+                }
 
                 two_pixels = idxOne << 4 | idxTwo;
                 map_16.rama.push_back(two_pixels);
 
-                c = image.pixelColor(x + 2, y);
-                k = getPaletteKey(c);
-                idxOne = thomsonPaletteCleaned.at(k).index;
 
-                c = image.pixelColor(x + 3, y);
-                k = getPaletteKey(c);
-                idxTwo = thomsonPaletteCleaned.at(k).index;
+                if (x + 2 < image.columns()) {
+                    c = image.pixelColor(x + 2, y);
+                    k = getPaletteKey(c);
+                    idxOne = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 2 << "," << y << "=" << "0" << endl;
+                    idxOne = 0;
+                }
+
+                if (x + 3 < image.columns()) {
+                    c = image.pixelColor(x + 3, y);
+                    k = getPaletteKey(c);
+                    idxTwo = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 3 << "," << y << "=" << "0" << endl;
+                    idxTwo = 0;
+                }
 
                 two_pixels = idxOne << 4 | idxTwo;
                 map_16.ramb.push_back(two_pixels);
@@ -390,6 +455,7 @@ int main(int argc, const char **argv)
         ditherImage(*it, i++);
     }
 
+    // ditherImage("/home/rodoc/develop/tomo/saucer/saucer2.png", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1);

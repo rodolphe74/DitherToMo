@@ -193,7 +193,7 @@ void extractFilenameFromPath(const string &fullpath, string &name, string &ext)
 }
 
 
-int ditherImage(string fullpath, int countIndex)
+int ditherImage(string fullpath, int countIndex, int backCompleteColor)
 {
     uint32_t imageWidth, imageHeight;
     map<string, PALETTE_ENTRY> palette, kmeanPalette;
@@ -303,39 +303,67 @@ int ditherImage(string fullpath, int countIndex)
         // Sauvegarde TO-SNAP BM16
         MAP_SEG map_16;
         uint8_t two_pixels;
-        map_16.lines = image.rows() / 8;
+        int hdiv = 1;
+        map_16.lines = image.rows() / hdiv;
         map_16.columns = image.columns() / 2;
+
+        if (image.columns() % 2) map_16.columns++;
+
         int idxOne, idxTwo;
-        int xCount;
-        for (int y = 0; y < map_16.lines * 8; y++) {
+        int xCount = 0, yCount = 0;
+        for (int y = 0; y < map_16.lines * hdiv; y++) {
             xCount = 0;
             for (int x = 0; x < map_16.columns * 2; x += 4) {
-                // RAMA
-                Color c = image.pixelColor(x, y);
-                string k = getPaletteKey(c);
-                idxOne = thomsonPaletteCleaned.at(k).index;
 
-                c = image.pixelColor(x + 1, y);
-                k = getPaletteKey(c);
-                idxTwo = thomsonPaletteCleaned.at(k).index;
+                Color c;
+                string k;
+
+                // RAMA
+                if (x < image.columns()) {
+                    c = image.pixelColor(x, y);
+                    k = getPaletteKey(c);
+                    idxOne = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 0 << "," << y << "=" << "0" << endl;
+                    idxOne = backCompleteColor;
+                }
+
+                if (x + 1 < image.columns()) {
+                    c = image.pixelColor(x + 1, y);
+                    k = getPaletteKey(c);
+                    idxTwo = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 1 << "," << y << "=" << "0" << endl;
+                    idxTwo = backCompleteColor;
+                }
 
                 two_pixels = idxOne << 4 | idxTwo;
                 map_16.rama.push_back(two_pixels);
 
-                c = image.pixelColor(x + 2, y);
-                k = getPaletteKey(c);
-                idxOne = thomsonPaletteCleaned.at(k).index;
+                if (x + 2 < image.columns()) {
+                    c = image.pixelColor(x + 2, y);
+                    k = getPaletteKey(c);
+                    idxOne = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 2 << "," << y << "=" << "0" << endl;
+                    idxOne = backCompleteColor;
+                }
 
-                c = image.pixelColor(x + 3, y);
-                k = getPaletteKey(c);
-                idxTwo = thomsonPaletteCleaned.at(k).index;
+                if (x + 3 < image.columns()) {
+                    c = image.pixelColor(x + 3, y);
+                    k = getPaletteKey(c);
+                    idxTwo = thomsonPaletteCleaned.at(k).index;
+                } else {
+                    cout << x + 3 << "," << y << "=" << "0" << endl;
+                    idxTwo = backCompleteColor;
+                }
 
                 two_pixels = idxOne << 4 | idxTwo;
                 map_16.ramb.push_back(two_pixels);
 
-                cout << "x=" << x << " y=" << y << "  " << map_16.rama.size() << endl;
                 xCount++;
             }
+            yCount++;
         }
 
         cout << "xCount=" << xCount << endl;
@@ -366,7 +394,7 @@ int ditherImage(string fullpath, int countIndex)
         os << " }," << endl;
         os << "\t" << xCount << "," << endl;
         os << "\t" << xCount * 4 << "," << endl;
-        os << "\t" << map_16.lines * 8 << "," << endl;
+        os << "\t" << /*map_16.lines * 8*/yCount << "," << endl;
         os << endl;
         streamMapC(os, map_16.rama);
         os << endl;
@@ -391,8 +419,10 @@ int main(int argc, const char **argv)
     // Read command line arguments
     string fsOption = "-fs=";
     string kOption = "-k";
+    string bOption = "-b=";
     int fs = -1;
     int k = -1;
+    int b = -1;  // background complete color when width is not 8 divisor
     vector<string> filesList;
     for (int x = 0; x < argc; x++) {
         // printf("%d = %s\n", x, argv[x]);
@@ -404,6 +434,13 @@ int main(int argc, const char **argv)
             } catch (...) {}
             noflag = false;
         }
+        if (string(argv[x]).compare(0, bOption.size(), bOption) == 0) {
+            std::string argumentValue = string(argv[x]).substr(bOption.size());
+            try {
+                b = std::stoi(argumentValue);
+            } catch (...) {}
+            noflag = false;
+        }
         if (string(argv[x]).compare(0, kOption.size(), kOption) == 0) {
             k = 1;
             noflag = false;
@@ -412,7 +449,8 @@ int main(int argc, const char **argv)
             filesList.push_back(string(argv[x]));
         }
     }
-
+    if (b == -1) b = 0;
+    cout << "background complete color index:" << b << endl;
     cout << "Images list" << endl;
     for (auto it = filesList.begin(); it != filesList.end(); it++) {
         cout << *it << endl;
@@ -421,9 +459,10 @@ int main(int argc, const char **argv)
 
     int i = 0;
     for (auto it = filesList.begin(); it != filesList.end(); it++) {
-        ditherImage(*it, i++);
+        ditherImage(*it, i++, b);
     }
 
+    // ditherImage("/home/rodoc/develop/tomo/saucer/saucer2.gif", 0, 15);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/build/cat160.png", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0);
