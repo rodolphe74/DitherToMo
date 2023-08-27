@@ -301,7 +301,12 @@ int ditherImage(string fullpath, int countIndex, int backCompleteColor)
         // image = ostromoukhov_dither(originalImage, thomsonPaletteCleaned);
         image.write("ditheredth.gif");
 
-        // Sauvegarde TO-SNAP BM16
+        // reset image into fullscreen canvas
+        auto backColor = thomsonPaletteCleaned.begin();
+        image.extent(Geometry(160, 200), backColor->second.color);
+        image.write("extent.gif");
+
+        // Create AB maps
         MAP_SEG map_16;
         uint8_t two_pixels;
         int hdiv = 1;
@@ -369,39 +374,57 @@ int ditherImage(string fullpath, int countIndex, int backCompleteColor)
 
         cout << "xCount=" << xCount << endl;
 
-        string cname = name + ".h";
-        ofstream os(cname);
+
+        // LZ77 compression
+        UCHAR screenMemA[8000] = {0};
+        UCHAR screenMemB[8000] = {0};
+        UCHAR comprScreenMemA[16000] = {0};
+        UCHAR comprScreenMemB[16000] = {0};
+        for (int i = 0; i < map_16.rama.size(); i++) screenMemA[i] = map_16.rama[i];
+        int csza = compress((uint8_t *) screenMemA, 8000, comprScreenMemA, 16000);
+        cout <<  "csza:" << csza << "  "  << map_16.rama.size() / (float) csza << endl;
+        for (int i = 0; i < map_16.ramb.size(); i++) screenMemB[i] = map_16.ramb[i];
+        int cszb = compress((uint8_t *) screenMemB, 8000, comprScreenMemB, 16000);
+        cout <<  "cszb:" << cszb << "  "  << map_16.ramb.size() / (float) cszb << endl;
+
+        string cname = name + "77.h";
+        ofstream osc(cname);
         // Structs
-        os << "struct " << name << "_struct {" << endl;
+        osc << "struct " << name << "_struct {" << endl;
 
         // struct declaration
-        os << "\t" << "unsigned int " << "pal[16];" << endl;
-        os << "\t" << "unsigned char " << "x;" << endl;
-        os << "\t" << "unsigned char " << "w;" << endl;
-        os << "\t" << "unsigned char " << "h;" << endl;
-        os << "\t" << "unsigned char/*unsigned int*/ mapa[" << map_16.rama.size() << "];" << endl;
-        os << "\t" << "unsigned int " << "lena;" << endl;
-        os << "\t" << "unsigned char/*unsigned int*/ mapb[" << map_16.ramb.size() << "];" << endl;
-        os << "\t" << "unsigned int " << "lenb;" << endl;
-        os << "}; " << endl;
+        osc << "\t" << "unsigned int " << "pal[16];" << endl;
+        osc << "\t" << "unsigned char " << "x;" << endl;
+        osc << "\t" << "unsigned char " << "w;" << endl;
+        osc << "\t" << "unsigned char " << "h;" << endl;
+        osc << "\t" << "/*" << map_16.rama.size() / (float) csza << "*/" << endl;
+        osc << "\t" << "unsigned char mapA[" << csza << "];" << endl;
+        osc << "\t" << "unsigned int " << "lenA;" << endl;
+        osc << "\t" << "/*" << map_16.ramb.size() / (float) cszb << "*/" << endl;
+        osc << "\t" << "unsigned char mapB[" << cszb << "];" << endl;
+        osc << "\t" << "unsigned int " << "lenB;" << endl;
+        osc << "}; " << endl;
 
         // struct initialization
-        os << "struct " << name << "_struct " << name << " = {" << endl;
-        os << "\t" << "{ ";
+        osc << "struct " << name << "_struct " << name << " = {" << endl;
+        osc << "\t" << "{ ";
         for (auto p = thomsonPaletteCleaned.begin(); p != thomsonPaletteCleaned.end(); p++) {
             uint16_t thomsonIndex = p->second.thomsonIndex;
-            os << "\t" <<  thomsonIndex << (next(p) == thomsonPaletteCleaned.end() ? "" : ",");
+            osc << "\t" <<  thomsonIndex << (next(p) == thomsonPaletteCleaned.end() ? "" : ",");
         }
-        os << " }," << endl;
-        os << "\t" << xCount << "," << endl;
-        os << "\t" << xCount * 4 << "," << endl;
-        os << "\t" << /*map_16.lines * 8*/yCount << "," << endl;
-        os << endl;
-        streamMapC(os, map_16.rama);
-        os << endl;
-        streamMapC(os, map_16.ramb);
-        os << "};";
-        os.close();
+        osc << " }," << endl;
+        osc << "\t" << xCount << "," << endl;
+        osc << "\t" << xCount * 4 << "," << endl;
+        osc << "\t" << yCount << "," << endl;
+        osc << endl;
+        vector<uint8_t> vComprScreenMemA(csza);
+        for (int i = 0; i < csza; i++) vComprScreenMemA[i] = comprScreenMemA[i];
+        streamMapC(osc, vComprScreenMemA);
+        vector<uint8_t> vComprScreenMemB(cszb);
+        for (int i = 0; i < cszb; i++) vComprScreenMemB[i] = comprScreenMemB[i];
+        streamMapC(osc, vComprScreenMemB);
+        osc << "}; " << endl;
+        osc.close();
 
     } catch (Exception &error_) {
         cout << "Caught exception: " << error_.what() << endl;
@@ -458,16 +481,16 @@ int main(int argc, const char **argv)
     }
     cout << endl;
 
-    int i = 0;
-    for (auto it = filesList.begin(); it != filesList.end(); it++) {
-        ditherImage(*it, i++, b);
-    }
+    // int i = 0;
+    // for (auto it = filesList.begin(); it != filesList.end(); it++) {
+    //     ditherImage(*it, i++, b);
+    // }
 
     // ditherImage("/home/rodoc/develop/tomo/saucer/saucer2.gif", 0, 15);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/build/cat160.png", 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0, 0);
+    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1, 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0);
     // ditherImage("/home/rodoc/develop/tomo/saucer/saucer.png", 0);
 

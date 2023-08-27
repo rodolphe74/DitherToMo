@@ -33,9 +33,14 @@ add_executable(dtm16 DTM16.cpp Floppy.cpp ColorStuff.cpp KMean.cpp ThomsonStuff.
 target_include_directories(dtm16 PRIVATE ${cppflags})
 target_link_libraries(dtm16 ${libs} sapfslib)
 
-add_executable(mapc16 MapC16.cpp Floppy.cpp ColorStuff.cpp KMean.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp)
+add_executable(mapc16 MapC16.cpp Floppy.cpp ColorStuff.cpp KMean.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp Lz77.cpp)
 target_include_directories(mapc16 PRIVATE ${cppflags})
 target_link_libraries(mapc16 ${libs} sapfslib)
+
+add_executable(mapc1677 MapC1677.cpp Floppy.cpp ColorStuff.cpp KMean.cpp ThomsonStuff.cpp ErrorDiffusionDither.cpp Lz77.cpp)
+target_include_directories(mapc1677 PRIVATE ${cppflags})
+target_link_libraries(mapc1677 ${libs} sapfslib)
+
 
 install(TARGETS dtm40 RUNTIME DESTINATION bin)
 install(TARGETS dtm16 RUNTIME DESTINATION bin)

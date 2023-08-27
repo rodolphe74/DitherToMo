@@ -118,5 +118,7 @@ void transposeDataMap40(int columns, int lines, const vector<uint8_t> &src, vect
 int readAhead(const vector<uint8_t> &buffer_list, int idx);
 void writeSegment(vector<uint8_t> &target, const vector<uint8_t> &buffer_list, int i, uint8_t seg_size);
 void compress(vector<uint8_t> &target, const vector<uint8_t> &buffer_list, int enclose);
+int mrlec(uint8_t *in, int inlen, uint8_t *out);
+int mrled(uint8_t *in, uint8_t *out, int outlen);
 int getIndexColorThomsonTo(int back_index, int fore_index);
 int getIndexColorThomsonMo(int back_index, int fore_index);
