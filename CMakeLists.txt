@@ -44,3 +44,5 @@ target_link_libraries(mapc1677 ${libs} sapfslib)
 
 install(TARGETS dtm40 RUNTIME DESTINATION bin)
 install(TARGETS dtm16 RUNTIME DESTINATION bin)
+install(TARGETS mapc16 RUNTIME DESTINATION bin)
+install(TARGETS mapc1677 RUNTIME DESTINATION bin)

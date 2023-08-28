@@ -24,6 +24,8 @@ using namespace std;
 static int iterAnim = 0;
 #define RESULT_SIZE_X 320.0
 #define RESULT_SIZE_Y 200.0
+#define MAP_BUFFER_SZ 8000
+#define C_MAP_BUFFER_SZ 16000 // compression can be bigger than original
 
 void debugPalette(const map<string, PALETTE_ENTRY> &palette, const string &paletteName)
 {
@@ -376,16 +378,33 @@ int ditherImage(string fullpath, int countIndex, int backCompleteColor)
 
 
         // LZ77 compression
-        UCHAR screenMemA[8000] = {0};
-        UCHAR screenMemB[8000] = {0};
-        UCHAR comprScreenMemA[16000] = {0};
-        UCHAR comprScreenMemB[16000] = {0};
+        initParameters(511, 9, 15, 4);
+        UCHAR screenMemA[MAP_BUFFER_SZ] = {0};
+        UCHAR screenMemB[MAP_BUFFER_SZ] = {0};
+        UCHAR comprScreenMemA[C_MAP_BUFFER_SZ] = {0};
+        UCHAR comprScreenMemB[C_MAP_BUFFER_SZ] = {0};
+        UCHAR uncomprScreenMemA[MAP_BUFFER_SZ] = {0};
+        UCHAR uncomprScreenMemB[MAP_BUFFER_SZ] = {0};
         for (int i = 0; i < map_16.rama.size(); i++) screenMemA[i] = map_16.rama[i];
-        int csza = compress((uint8_t *) screenMemA, 8000, comprScreenMemA, 16000);
+        int csza = compress((uint8_t *) screenMemA, MAP_BUFFER_SZ, comprScreenMemA, C_MAP_BUFFER_SZ);
         cout <<  "csza:" << csza << "  "  << map_16.rama.size() / (float) csza << endl;
         for (int i = 0; i < map_16.ramb.size(); i++) screenMemB[i] = map_16.ramb[i];
-        int cszb = compress((uint8_t *) screenMemB, 8000, comprScreenMemB, 16000);
+        int cszb = compress((uint8_t *) screenMemB, MAP_BUFFER_SZ, comprScreenMemB, C_MAP_BUFFER_SZ);
         cout <<  "cszb:" << cszb << "  "  << map_16.ramb.size() / (float) cszb << endl;
+
+        // DEBUG : validation decompression
+        UINT ucsza = uncompress(comprScreenMemA, csza, uncomprScreenMemA, MAP_BUFFER_SZ);
+        cout << "Decompression size:" << ucsza << endl;
+        for (int i = 0; i < ucsza; i++)
+            if (uncomprScreenMemA[i] != screenMemA[i])
+                cout << "Decompression validation error at " << i << endl;
+
+        // DEBUG : validation decompression
+        UINT ucszb = uncompress(comprScreenMemB, cszb, uncomprScreenMemB, MAP_BUFFER_SZ);
+        cout << "Decompression size:" << ucszb << endl;
+        for (int i = 0; i < ucszb; i++)
+            if (uncomprScreenMemB[i] != screenMemB[i])
+                cout << "Decompression validation error at " << i << endl;
 
         string cname = name + "77.h";
         ofstream osc(cname);
@@ -481,17 +500,17 @@ int main(int argc, const char **argv)
     }
     cout << endl;
 
-    // int i = 0;
-    // for (auto it = filesList.begin(); it != filesList.end(); it++) {
-    //     ditherImage(*it, i++, b);
-    // }
+    int i = 0;
+    for (auto it = filesList.begin(); it != filesList.end(); it++) {
+        ditherImage(*it, i++, b);
+    }
 
     // ditherImage("/home/rodoc/develop/tomo/saucer/saucer2.gif", 0, 15);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/build/cat160.png", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0, 0);
-    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1, 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0, 0);
     // ditherImage("/home/rodoc/develop/tomo/saucer/saucer.png", 0);
 
     return 0;
