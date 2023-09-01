@@ -6,6 +6,8 @@
 #define UINT uint16_t
 #define UCHAR unsigned char
 #define CHAR char
+#define INT32 int32_t
+#define UINT32 uint32_t
 #else
 #include <cmoc.h>
 #define INT int
@@ -36,6 +38,13 @@
 #define AHEAD_BIT_SIZE 6
 
 #define CHAR_BIT_SIZE 8
+
+#ifdef COMPILER_IS_CMOC
+#define MATCH_STRING_FUNC bruteForceSearch
+#else
+#define MATCH_STRING_FUNC karpRabinSearch
+#endif
+
 
 // Global parameters
 extern UINT dicSize;
@@ -84,9 +93,17 @@ struct bitFieldStruct {
 #endif
 typedef struct bitFieldStruct BitField;
 
-void initDefaultParameters();
+void initDefaultParameters(void);
 void initParameters(UINT dsz, UCHAR bdsz, UINT asz, UCHAR basz);
 void initBitField(BitField *bf, UCHAR *buf);
+
+// http://www-igm.univ-mlv.fr/~lecroq/string/index.html
+// WARNING: search index on signed INT (16 bits INT : lz77 dictonary & window size < 32768)
+INT bruteForceSearch(UCHAR *x, INT m, UCHAR *y, INT n);
+INT bruteForceSearchOptim(UCHAR *x, INT m, UCHAR *y, INT n);
+INT karpRabinSearch(UCHAR *x, INT m, UCHAR *y, INT n);
+
+Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicIndex, UINT startAHead, UINT aHeadSize);
 void writebits(BitField *bf, UINT value, UCHAR bitCount);
 UINT readbits(BitField *bf, UCHAR bitCount);
 INT compress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize);
@@ -97,4 +114,5 @@ UINT readbitsFile(BitField *bf, UCHAR bitCount, UINT *valueRead);
 void finalizeWritebitsFile(BitField *bf, FILE *fout);
 void compressFile(FILE *fin, FILE *fout);
 void uncompressFile(FILE *fin, FILE *fout);
+void uncompressFileUnbuffered(FILE *fin, FILE *fout);
 #endif

@@ -17,7 +17,6 @@
 #include "ErrorDiffusionDither.h"
 #include "Floppy.h"
 #include "KMean.h"
-#include "lz77.h"
 
 using namespace std;
 

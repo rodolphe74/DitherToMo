@@ -1,4 +1,4 @@
-#include "lz77.h"
+#include "Lz77.h"
 #ifndef COMPILER_IS_CMOC
 #include <string.h>
 #include <stdlib.h>
@@ -85,52 +85,156 @@ UINT readbits(BitField *bf, UCHAR bitCount)
     return value;
 }
 
+
+// INT bruteForceSearch(UCHAR *x, UINT m, UCHAR *y, UINT n)
+// {
+//     printf("m=%d n=%d%c%c", m, n, 10, 13);
+//
+//     UINT i, j;
+//     /* Searching */
+//     for (j = 0; j <= n - m; ++j) {
+//         for (i = 0; i < m && x[i] == y[i + j]; ++i);
+//         if (i >= m)
+//             return j;
+//     }
+//     return -1;
+// }
+
+INT bruteForceSearch(UCHAR *x, INT m, UCHAR *y, INT n)
+{
+    INT i, j;
+    /* Searching */
+    for (j = 0; j <= n - m; ++j) {
+        for (i = 0; i < m && x[i] == y[i + j]; ++i);
+        if (i >= m)
+            return j;
+    }
+    return -1;
+}
+
+INT bruteForceSearchOptim(UCHAR *x, INT m, UCHAR *y, INT n)
+{
+    UCHAR *yb;
+    INT i = 0;
+
+    /* Searching */
+    for (yb = y; i <= n - m  ; ++y, i++) {
+        if (memcmp(x, y, m) == 0)
+            return y - yb;
+    }
+    return -1;
+}
+
+// rehash(a,b,h)= ((h-a*2m-1)*2+b) mod q
+#define REHASH(a, b, h) ((((h) - (a)*d) << 1) + (b))
+INT karpRabinSearch(UCHAR *x, INT m, UCHAR *y, INT n)
+{
+
+#ifdef COMPILER_IS_CMOC
+    INT d, hx, hy, i, j;
+#else
+    // faster on signed int (gcc linux)
+    INT32 d, hx, hy, i, j;
+#endif
+
+    // Preprocessing
+    // computes d = 2^(m-1) with
+    // the left-shift operator
+    for (d = i = 1; i < m; ++i)
+        d = (d << 1);
+
+    for (hy = hx = i = 0; i < m; ++i) {
+        hx = ((hx << 1) + x[i]);
+        hy = ((hy << 1) + y[i]);
+    }
+
+    /* Searching */
+    j = 0;
+    while (j <= n - m) {
+        if (hx == hy && memcmp(x, y + j, m) == 0)
+            return j;
+        hy = REHASH(y[j], y[j + m], hy);
+        ++j;
+    }
+    return -1;
+}
+
+
 Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicIndex, UINT startAHead, UINT aHeadSize)
 {
-    if (startAHead == startDicIndex) {
+    // printf("%d %d %d %d %c%c", startAHead, startDicIndex, startDicIndex, stopDicIndex, 10, 13);
+    if (startAHead == startDicIndex || startDicIndex == stopDicIndex) {
+
         Tuple t = { 0, 0, input[startAHead] };
         return t;
     }
 
     Tuple t = {0, 0, input[startAHead]};
-    UCHAR match = 0;
-    INT i = 0, j = 0, k = 0;
-    INT maxK = 0;
-    while (startDicIndex <= stopDicIndex) {
-        // printf("*startDicIndex:%d   stopDicIndex:%d\n", startDicIndex, stopDicIndex);
-        for (i = startAHead; i < startAHead + aHeadSize; i++) {
-            match = 0;
-            for (j = startDicIndex; j <= stopDicIndex /*- 1*/; j++) {    // TODO decrement
-                if (input[j] == input[startAHead]) {
-                    // printf("  ** match %d(%c)=%d(%c)\n", j, (char) input[j], startAHead, (char) input[startAHead]);
-                    match = 1;
-                    break;
-                }
-            }
-            if (match) {
-                k = 1;
-                while (k < aHeadSize - 1 && input[j + k] == input[startAHead + k]) {
-                    if (j + k >= stopDicIndex) break;
-                    k++;
-                }
+    int match = -1;
 
-                if (k > maxK) {
-
-                    if (startAHead + k > inputSize - 1) break;    // check overflow
-
-                    t.d = (i - j);
-                    t.l = k;
-                    t.c = input[startAHead + k];
-                    maxK = k;
-                    // printf("maxK:%d %d %d\n", maxK, startAHead + k, startAHead);
-                }
-                break;
-            }
+    // UINT maxAHeadIndex = startAHead + aheadSize > inputSize ? (UINT) 0 : (UINT) aHeadSize - 1;
+    UINT maxAHeadIndex = startAHead + aheadSize > inputSize ? (UINT) (inputSize - startAHead - 1) : (UINT) (aHeadSize - 1);
+    // printf("inputSize:%d   startAHead%d   maxAHeadIndex:%d%c%c", inputSize, startAHead, maxAHeadIndex, 10, 13);
+    for (UINT i = maxAHeadIndex; i >= 1; i--) {
+        match = MATCH_STRING_FUNC(input + startAHead, i, input + startDicIndex, stopDicIndex - startDicIndex);
+        if (match >= 0) {
+            t.d = stopDicIndex - startDicIndex + 1 - match;
+            t.l = i;
+            t.c = input[startAHead + i];
+            break;
         }
-        startDicIndex++;
     }
+
     return t;
 }
+
+
+// Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicIndex, UINT startAHead, UINT aHeadSize)
+// {
+//     if (startAHead == startDicIndex) {
+//         Tuple t = { 0, 0, input[startAHead] };
+//         return t;
+//     }
+//
+//     Tuple t = {0, 0, input[startAHead]};
+//     UCHAR match = 0;
+//     INT i = 0, j = 0, k = 0;
+//     INT maxK = 0;
+//     while (startDicIndex <= stopDicIndex) {
+//         // printf("*startDicIndex:%d   stopDicIndex:%d\n", startDicIndex, stopDicIndex);
+//
+//         for (i = startAHead; i < startAHead + aHeadSize; i++) {
+//             for (j = startDicIndex; j <= stopDicIndex /*- 1*/; j++) {    // TODO decrement
+//                 if (input[j] == input[startAHead]) {
+//                     // printf("  ** match %d(%c)=%d(%c)\n", j, (char) input[j], startAHead, (char) input[startAHead]);
+//                     match = 1;
+//                     break;
+//                 }
+//             }
+//             if (match) {
+//                 k = 1;
+//                 while (k < aHeadSize - 1 && input[j + k] == input[startAHead + k]) {
+//                     if (j + k >= stopDicIndex) break;
+//                     k++;
+//                 }
+//
+//                 if (k > maxK) {
+//
+//                     if (startAHead + k > inputSize - 1) break;    // check overflow
+//
+//                     t.d = (i - j);
+//                     t.l = k;
+//                     t.c = input[startAHead + k];
+//                     maxK = k;
+//                     // printf("maxK:%d %d %d\n", maxK, startAHead + k, startAHead);
+//                 }
+//                 break;
+//             }
+//         }
+//         startDicIndex++;
+//     }
+//     return t;
+// }
 
 INT compress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize)
 {
@@ -150,7 +254,7 @@ INT compress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize)
         Tuple t = {0, 0, 0};
         t = findInDic(input, iSize, dicIndexStart, dicIndexStop, index, aheadSize);
 
-        // printf("c %d  t=%d,%d,%c(%d)\n", iSize, t.d, t.l, (char) t.c, t.c);
+        // printf("c %d  t=%d,%d,%c(%d)%c%c", iSize, t.d, t.l, (char) t.c, t.c, 10, 13);
 
         writebits(&bf, t.d, dicBitSize);
         writebits(&bf, t.l, aheadBitSize);
@@ -172,12 +276,13 @@ INT uncompress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize)
     while (bf.currentIndex < iSize) {
 
         Tuple t;
-        t.d = /*(UCHAR)*/ readbits(&bf, dicBitSize);
-        t.l = /*(UCHAR)*/ readbits(&bf, aheadBitSize);
+        t.d = readbits(&bf, dicBitSize);
+        t.l = readbits(&bf, aheadBitSize);
         t.c = (UCHAR) readbits(&bf, CHAR_BIT_SIZE);
         // printf("d  t=%d,%d,%c(%d)\n", t.d, t.l, (char) t.c, t.c);
 
         if (t.d != 0) {
+            // if (outputIdx - t.d + t.l >= 16384) printf("unc overflow! %d  (%d %d)\n", outputIdx - t.d, t.d, t.l);
             memcpy(output + outputIdx, output + outputIdx - t.d, t.l);
             outputIdx += t.l;
         }
@@ -209,6 +314,7 @@ UINT readbitsFile(BitField *bf, UCHAR bitCount, UINT *valueRead)
     if (bf->file.init) {
         // o = fread(&currentChar, 1, 1, bf->file.f);
         o = fread(&bf->file.currentChar, 1, 1, bf->file.f);
+        bf->currentIndex++;
         bf->file.init = 0;
     }
     while (bitCount) {
@@ -222,6 +328,7 @@ UINT readbitsFile(BitField *bf, UCHAR bitCount, UINT *valueRead)
         if (bf->bitLeft < 0) {
             bf->bitLeft = 7;
             o = fread(&bf->file.currentChar, 1, 1, bf->file.f);
+            bf->currentIndex++;
             if (!o) {
                 return 0;
             }
@@ -243,7 +350,7 @@ void compressFile(FILE *fin, FILE *fout)
     INT cidx = 0;
     INT csz = 0;
     while ((read = fread(buffer, 1, sizeof(buffer), fin)) > 0) {
-        // printf("read:%d %lu\n", read, ftell(fout));
+        printf("read:%d %lu\n", read, ftell(fout));
 
         cidx = compress(buffer, read, cBuffer, C_F_BUFFER_SZ);
         // printf("cidx:%d >%c(%d)<  >%c(%d)<\n", cidx, buffer[sizeof(buffer) - 1], buffer[sizeof(buffer) - 1], cBuffer[cidx - 1], cBuffer[cidx - 1]);
@@ -283,64 +390,61 @@ void finalizeWritebitsFile(BitField *bf, FILE *fout)
 
 
 // **************************************
-// Keep for later use.
 // Uncompress without buffer.
 // Use file structure from bitFieldStruct
 // and seek directly on byte with fseek.
 // Need a good system buffered disk read.
-// Need to write uncompressed chunk size
+// Need to write compressed chunk size
 // to synchronize (F_BUFFER_SZ).
 // **************************************
-// void uncompressFile(FILE *fin, FILE *fout)
-// {
-//     Tuple t;
-//     EmittedTuple q;
-//     UCHAR d[1];
-//     INT read = 0;
-//     long cfp = 0;
-//     UINT fCount = 0;
-//     UINT fChunkSize = 0;
-//     UINT o = 1;
-//     UINT valueRead = 0;
-//     BitField bf;
-//
-//     while ((read = fread(&fChunkSize, sizeof(fChunkSize), 1, fin)) > 0) {
-//         fCount = 0;
-//         initBitFieldFile(&bf, fin);
-//         printf("read:%d\n", fChunkSize);
-//         while (o) {
-//             o = readbitsFile(&bf, DIC_BIT_SIZE, &valueRead);
-//             t.d = (UCHAR) valueRead;    // WARNING 255 max
-//             o = readbitsFile(&bf, AHEAD_BIT_SIZE, &valueRead);
-//             t.l = (UCHAR) valueRead;    // WARNING
-//             o = readbitsFile(&bf, CHAR_BIT_SIZE, &valueRead);
-//             t.c = (UCHAR) valueRead;    // WARNING
-//
-//             if (t.d != 0) {
-//                 cfp = ftell(fout);
-//                 for (int i = 0; i < t.l; i++) {
-//                     fseek(fout, cfp - t.d + i, SEEK_SET);
-//                     fread(d, 1, sizeof(d), fout);
-//                     fseek(fout, 0, SEEK_END);
-//                     fwrite(d, 1, 1, fout);
-//                     fflush(fout);
-//                     fCount++;
-//                 }
-//             }
-//             if (fCount < fChunkSize) {
-//                 // when next car was taken out of message boundaries, no write
-//                 fwrite(&t.c, 1, 1, fout);
-//                 fflush(fout);
-//                 fCount++;
-//             }
-//
-//             if (fCount >= fChunkSize) {
-//                 fseek(fin, -1, SEEK_CUR);   // readbitsfile compensation TODO ca depend
-//                 break;
-//             }
-//         }
-//     }
-// }
+void uncompressFileUnbuffered(FILE *fin, FILE *fout)
+{
+    Tuple t;
+    UCHAR d[1];
+    INT read = 0;
+    long cfp = 0;
+    UINT fChunkSize = 0;
+    UINT o = 1;
+    UINT valueRead = 0;
+    BitField bf;
+
+    while ((read = fread(&fChunkSize, sizeof(fChunkSize), 1, fin)) > 0) {
+        // fCount = 0;
+        // bitsWriten++;
+        initBitFieldFile(&bf, fin);
+        // printf("read:%d\n", fChunkSize);
+        bf.currentIndex = 0;
+        while (o) {
+            o = readbitsFile(&bf, dicBitSize, &valueRead);
+            t.d = valueRead;    // WARNING 255 max
+            o = readbitsFile(&bf, aheadBitSize, &valueRead);
+            t.l = valueRead;    // WARNING
+            o = readbitsFile(&bf, CHAR_BIT_SIZE, &valueRead);
+            t.c = (UCHAR) valueRead;    // WARNING
+
+            if (t.d != 0) {
+                cfp = ftell(fout);
+                for (int i = 0; i < t.l; i++) {
+                    fseek(fout, cfp - t.d + i, SEEK_SET);
+                    read = fread(d, 1, sizeof(d), fout);
+                    fseek(fout, 0, SEEK_END);
+                    fwrite(d, 1, 1, fout);
+                    fflush(fout);
+                }
+            }
+            fwrite(&t.c, 1, 1, fout);
+            // bitsWriten++;
+            fflush(fout);
+            // fCount++;
+            // printf("currentIndex   %d\n", bf.currentIndex);
+
+            if (bf.currentIndex >= fChunkSize) {
+                // fseek(fin, -1, SEEK_CUR);   // readbitsfile compensation TODO ca depend
+                break;
+            }
+        }
+    }
+}
 
 
 // ****************************************
