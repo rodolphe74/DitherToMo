@@ -11,15 +11,24 @@ UCHAR dicBitSize;
 UINT dicSize;
 UCHAR aheadBitSize;
 UINT aheadSize;
+// Thomson TO8 memory is a critical resource
+#ifndef COMPILER_IS_CMOC
+INT lps[KMP_LPS_SIZE];  // WARNING multithread search
+INT bmBc[BM_XSIZE];
+INT bmGs[BM_ASIZE];
+#endif
 
-
-
-void initDefaultParameters()
+void initDefaultParameters(void)
 {
     dicSize = DIC_SIZE;
     dicBitSize = DIC_BIT_SIZE;
     aheadSize = AHEAD_SIZE;
     aheadBitSize = AHEAD_BIT_SIZE;
+#ifndef COMPILER_IS_CMOC
+    memset(lps, 0, KMP_LPS_SIZE * sizeof(INT));
+    memset(bmBc, 0, BM_XSIZE * sizeof(INT));
+    memset(bmGs, 0, BM_ASIZE * sizeof(INT));
+#endif
 }
 
 void initParameters(UINT dsz, UCHAR bdsz, UINT asz, UCHAR basz)
@@ -28,6 +37,11 @@ void initParameters(UINT dsz, UCHAR bdsz, UINT asz, UCHAR basz)
     dicBitSize = bdsz;
     aheadSize = asz;
     aheadBitSize = basz;
+#ifndef COMPILER_IS_CMOC
+    memset(lps, 0, KMP_LPS_SIZE * sizeof(INT));
+    memset(bmBc, 0, BM_XSIZE * sizeof(INT));
+    memset(bmGs, 0, BM_ASIZE * sizeof(INT));
+#endif
 }
 
 void initBitField(BitField *bf, UCHAR *buf)
@@ -86,20 +100,8 @@ UINT readbits(BitField *bf, UCHAR bitCount)
 }
 
 
-// INT bruteForceSearch(UCHAR *x, UINT m, UCHAR *y, UINT n)
-// {
-//     printf("m=%d n=%d%c%c", m, n, 10, 13);
-//
-//     UINT i, j;
-//     /* Searching */
-//     for (j = 0; j <= n - m; ++j) {
-//         for (i = 0; i < m && x[i] == y[i + j]; ++i);
-//         if (i >= m)
-//             return j;
-//     }
-//     return -1;
-// }
-
+// Thomson TO8 memory is a critical resource
+#ifndef COMPILER_IS_CMOC
 INT bruteForceSearch(UCHAR *x, INT m, UCHAR *y, INT n)
 {
     INT i, j;
@@ -111,7 +113,10 @@ INT bruteForceSearch(UCHAR *x, INT m, UCHAR *y, INT n)
     }
     return -1;
 }
+#endif
 
+// Thomson TO8 memory is a critical resource
+// keep only used string search when CMOC
 INT bruteForceSearchOptim(UCHAR *x, INT m, UCHAR *y, INT n)
 {
     UCHAR *yb;
@@ -125,17 +130,18 @@ INT bruteForceSearchOptim(UCHAR *x, INT m, UCHAR *y, INT n)
     return -1;
 }
 
+// Thomson TO8 memory is a critical resource
+#ifndef COMPILER_IS_CMOC
 // rehash(a,b,h)= ((h-a*2m-1)*2+b) mod q
 #define REHASH(a, b, h) ((((h) - (a)*d) << 1) + (b))
 INT karpRabinSearch(UCHAR *x, INT m, UCHAR *y, INT n)
 {
-
-#ifdef COMPILER_IS_CMOC
-    INT d, hx, hy, i, j;
-#else
+// #ifdef COMPILER_IS_CMOC
+//     INT d, hx, hy, i, j;
+// #else
     // faster on signed int (gcc linux)
     INT32 d, hx, hy, i, j;
-#endif
+// #endif
 
     // Preprocessing
     // computes d = 2^(m-1) with
@@ -158,6 +164,160 @@ INT karpRabinSearch(UCHAR *x, INT m, UCHAR *y, INT n)
     }
     return -1;
 }
+#endif
+
+
+// Thomson TO8 memory is a critical resource
+#ifndef COMPILER_IS_CMOC
+// Boyer-Moore helpers
+void
+preBmBc(UCHAR *x, INT m, INT bmBc[])
+{
+    INT i;
+    for (i = 0; i < BM_XSIZE; ++i)
+        bmBc[i] = m;
+    for (i = 0; i < m - 1; ++i)
+        bmBc[(size_t)x[i]] = m - i - 1;
+}
+
+void
+suffixes(UCHAR *x, INT m, INT *suff)
+{
+    INT f = 0, g, i;
+
+    suff[m - 1] = m;
+    g = m - 1;
+    for (i = m - 2; i >= 0; --i) {
+        if (i > g && suff[i + m - 1 - f] < i - g)
+            suff[i] = suff[i + m - 1 - f];
+        else {
+            if (i < g)
+                g = i;
+            f = i;
+            while (g >= 0 && x[g] == x[g + m - 1 - f])
+                --g;
+            suff[i] = f - g;
+        }
+    }
+}
+
+void
+preBmGs(UCHAR *x, INT m, INT bmGs[])
+{
+    INT i, j, suff[BM_ASIZE];
+
+    suffixes(x, m, suff);
+
+    for (i = 0; i < m; ++i)
+        bmGs[i] = m;
+    j = 0;
+    for (i = m - 1; i >= 0; --i)
+        if (suff[i] == i + 1)
+            for (; j < m - 1 - i; ++j)
+                if (bmGs[j] == m)
+                    bmGs[j] = m - 1 - i;
+    for (i = 0; i <= m - 2; ++i)
+        bmGs[m - 1 - suff[i]] = m - 1 - i;
+}
+
+INT boyerMooreSearch(UCHAR *x, INT m, UCHAR *y, INT n)
+{
+    INT i, j;
+
+    /* Preprocessing */
+    preBmGs(x, m, bmGs);
+    preBmBc(x, m, bmBc);
+
+    /* Searching */
+    j = 0;
+    while (j <= n - m) {
+        for (i = m - 1; i >= 0 && x[i] == y[i + j]; --i);
+        if (i < 0) {
+            return j;
+        } else
+            j += MAX(bmGs[i], bmBc[y[i + j]] - m + 1 + i);
+    }
+    return -1;
+}
+#endif
+
+
+
+// Thomson TO8 memory is a critical resource
+#ifndef COMPILER_IS_CMOC
+// KMP helper
+// Fills lps[] for given pattern pat[0..M-1]
+// lps[i] = the longest proper prefix of pat[0..i] which is also a suffix of pat[0..i].
+// sample : “AABAACAABAA”, lps[] is [0, 1, 0, 1, 2, 0, 1, 2, 3, 4, 5]
+// idx = 4 : [AA]B[AA] -> 2 (sz(pre(AA)) = sz(suf(AA)) = 2)
+// idx = 8 : [AAB]AAC[AAB] -> 3 (sz(pre(AAB)) = sz(suf(AAB)) = 3)
+// idx = 9 : [AABA]AC[AABA] -> 3 (sz(pre(AABA)) = sz(suf(AABA)) = 4)
+void computeLPSArray(UCHAR *pattern, UINT M, INT *lps)
+{
+    // length of the previous longest prefix suffix
+    INT len = 0;
+    lps[0] = 0; // lps[0] is always 0
+
+    // the loop calculates lps[i] for i = 1 to M-1
+    INT i = 1;
+    while (i < M) {
+        if (pattern[i] == pattern[len]) {
+            len++;
+            lps[i] = len;
+            i++;
+        } else { // (pat[i] != pat[len])
+            // This is tricky. Consider the example.
+            // AAACAAAA and i = 7. The idea is similar
+            // to search step.
+            if (len != 0) {
+                len = lps[len - 1];
+
+                // Also, note that we do not increment
+                // i here
+            } else { // if (len == 0)
+                lps[i] = 0;
+                i++;
+            }
+        }
+    }
+}
+
+
+INT knuthMorrisPrattSearch(UCHAR *x, INT m, UCHAR *y, INT n)
+{
+    // Preprocess the pattern (calculate lps[] array)
+    computeLPSArray(x, m, lps);
+
+    UINT i = 0; // index for txt[]
+    UINT j = 0; // index for pat[]
+    while ((n - i) >= (m - j)) {
+        if (x[j] == y[i]) {
+            j++;
+            i++;
+        }
+
+        if (j == m) {
+            // printf("Found pattern at index %d ", i - j);
+            return (i - j);
+            // j = lps[j - 1];
+        }
+
+        // mismatch after j matches
+        else if (i < n && x[j] != y[i]) {
+            // Do not match lps[0..lps[j-1]] characters,
+            // they will match anyway
+            if (j != 0) {
+                // printf("shift by %d%c%c", j, 10, 13);
+                j = lps[j - 1];
+            } else {
+                // printf("shift++\n");
+                i = i + 1;
+            }
+        }
+    }
+    return -1;
+}
+#endif
 
 
 Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicIndex, UINT startAHead, UINT aHeadSize)
@@ -173,7 +333,7 @@ Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicI
     int match = -1;
 
     // UINT maxAHeadIndex = startAHead + aheadSize > inputSize ? (UINT) 0 : (UINT) aHeadSize - 1;
-    UINT maxAHeadIndex = startAHead + aheadSize > inputSize ? (UINT) (inputSize - startAHead - 1) : (UINT) (aHeadSize - 1);
+    UINT maxAHeadIndex = startAHead + aheadSize > inputSize ? (UINT)(inputSize - startAHead - 1) : (UINT)(aHeadSize - 1);
     // printf("inputSize:%d   startAHead%d   maxAHeadIndex:%d%c%c", inputSize, startAHead, maxAHeadIndex, 10, 13);
     for (UINT i = maxAHeadIndex; i >= 1; i--) {
         match = MATCH_STRING_FUNC(input + startAHead, i, input + startDicIndex, stopDicIndex - startDicIndex);
@@ -188,53 +348,6 @@ Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicI
     return t;
 }
 
-
-// Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicIndex, UINT startAHead, UINT aHeadSize)
-// {
-//     if (startAHead == startDicIndex) {
-//         Tuple t = { 0, 0, input[startAHead] };
-//         return t;
-//     }
-//
-//     Tuple t = {0, 0, input[startAHead]};
-//     UCHAR match = 0;
-//     INT i = 0, j = 0, k = 0;
-//     INT maxK = 0;
-//     while (startDicIndex <= stopDicIndex) {
-//         // printf("*startDicIndex:%d   stopDicIndex:%d\n", startDicIndex, stopDicIndex);
-//
-//         for (i = startAHead; i < startAHead + aHeadSize; i++) {
-//             for (j = startDicIndex; j <= stopDicIndex /*- 1*/; j++) {    // TODO decrement
-//                 if (input[j] == input[startAHead]) {
-//                     // printf("  ** match %d(%c)=%d(%c)\n", j, (char) input[j], startAHead, (char) input[startAHead]);
-//                     match = 1;
-//                     break;
-//                 }
-//             }
-//             if (match) {
-//                 k = 1;
-//                 while (k < aHeadSize - 1 && input[j + k] == input[startAHead + k]) {
-//                     if (j + k >= stopDicIndex) break;
-//                     k++;
-//                 }
-//
-//                 if (k > maxK) {
-//
-//                     if (startAHead + k > inputSize - 1) break;    // check overflow
-//
-//                     t.d = (i - j);
-//                     t.l = k;
-//                     t.c = input[startAHead + k];
-//                     maxK = k;
-//                     // printf("maxK:%d %d %d\n", maxK, startAHead + k, startAHead);
-//                 }
-//                 break;
-//             }
-//         }
-//         startDicIndex++;
-//     }
-//     return t;
-// }
 
 INT compress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize)
 {
