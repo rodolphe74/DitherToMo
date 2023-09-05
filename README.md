@@ -31,6 +31,6 @@ dtm16|TO_SNAP image creation in 160*200*16[^1]
 mapc16|C header creation in 160*200*16[^2]
 mapc1677|C header creation in 160*200*16 with lz77 compression[^2]
 
-[^1]: [Les fichiers graphiques Thomson](http://collection.thomson.free.fr/code/articles/prehisto_bulletin/page.php?XI=0&XJ=13)
+[^1]:(http://collection.thomson.free.fr/code/articles/prehisto_bulletin/page.php?XI=0&XJ=13)
 
 [^2]: [lz77](https://github.com/rodolphe74/lz77)
