@@ -28,7 +28,9 @@ Binaries|Utilisation
 ---|---
 dtm40|MAP image creation in 320x200x16[^1]
 dtm16|MAP image creation in 160x200x16[^1]
+dtm1677|lz77 image creation in 160x200x16[^3]
 mapc16|C header creation in 160x200x16[^2]
 mapc1677|C header creation in 160x200x16 with lz77 compression[^2]
 [^1]:[Les fichiers graphiques Thomson](http://collection.thomson.free.fr/code/articles/prehisto_bulletin/page.php?XI=0&XJ=13)
 [^2]:[lz77](https://github.com/rodolphe74/lz77)
+[^3]:[see l77 image proprietary format description below]
