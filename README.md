@@ -48,8 +48,15 @@ Not yet fully implemented, but should be:
 Offset|Length|Description
 ---|---|---
 0|3|Magic number [0x01 0x06 0x07]
-3|1|x resolution / 4 (40 max)
-4|1|x resolution (160 max)
-5|1|y resolution (200 max)
-6|32|palette 16 * 2 bytes (16 colors, each on 2 bytes)
+3|1|X resolution / 4 (40 max)
+4|1|X resolution (160 max)
+5|1|Y resolution (200 max)
+6|32|Palette 16 * 2 bytes (16 colors, each on 2 bytes)
+35|1|Number A of RAMA lz77 chunks
+36|1|Number B of RAMB lz77 chunks
+37|2|1st RAMA chunk size = CSZA
+38|CSZA|lz77 bytes data
+38+CSZA|Next RAMA chunk size...
+
+
 
