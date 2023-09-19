@@ -52,12 +52,12 @@ Offset|Length|Description
 4|1|X resolution (160 max)
 5|1|Y resolution (200 max)
 6|32|Palette 16 * 2 bytes (16 colors, each on 2 bytes)
-35|1|Number A of RAMA lz77 chunks
-36|1|Number B of RAMB lz77 chunks
-37|2|1st RAMA chunk size
-38|1|Boolean: compressed chunk or not.
-39|size of chunk|lz77 RAMA bytes data
-39+size of chunk|2|Next RAMA chunk size
+38|1|Number A of RAMA lz77 chunks
+39|1|Number B of RAMB lz77 chunks
+40|2|1st RAMA chunk size
+41|1|Boolean: compressed chunk or not.
+42|size of chunk|lz77 RAMA bytes data
+42+size of chunk|2|Next RAMA chunk size
 ...|...|...
 N|2|1st RAMB chunk size
 N+1|1|Boolean: compressed chunk or not.
