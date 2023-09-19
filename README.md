@@ -55,11 +55,11 @@ Offset|Length|Description
 35|1|Number A of RAMA lz77 chunks
 36|1|Number B of RAMB lz77 chunks
 37|2|1st RAMA chunk size
-38|size of chunk|lz77 bytes data
+38|size of chunk|lz77 RAMA bytes data
 38+size of chunk|2|Next RAMA chunk size
 ...|...|...
 36+A|2|1st RAMB chunk size
-36+A+2|size of chunk|lz77 bytes data
+36+A+2|size of chunk|lz77 RAMB bytes data
 ...|...|...
 
 
