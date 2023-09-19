@@ -1,0 +1,4 @@
+-I
+/usr/local/include/ImageMagick-7
+-I
+\\wsl.localhost\Ubuntu\usr\local\include\ImageMagick-7

@@ -123,7 +123,9 @@ Tuple findInDic(UCHAR *input, UINT inputSize,  UINT startDicIndex, UINT stopDicI
 void writebits(BitField *bf, UINT value, UCHAR bitCount);
 UINT readbits(BitField *bf, UCHAR bitCount);
 INT compress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize);
+INT compressWithChunks(UCHAR *input, UINT iSize, UINT chunkSize, UCHAR *output, UINT oSize);
 INT uncompress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize);
+INT uncompressWithChunks(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize);
 #ifndef COMPILER_IS_CMOC
 void initBitFieldFile(BitField *bf, FILE *file);
 UINT readbitsFile(BitField *bf, UCHAR bitCount, UINT *valueRead);
