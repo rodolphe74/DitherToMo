@@ -60,7 +60,7 @@ Offset|Length|Description
 39+size of chunk|2|Next RAMA chunk size
 ...|...|...
 N|2|1st RAMB chunk size
-N+1|Boolean: compressed chunk or not.
+N+1|1|Boolean: compressed chunk or not.
 N+3|size of chunk|lz77 RAMB bytes data
 ...|...|...
 
