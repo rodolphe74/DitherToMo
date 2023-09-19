@@ -43,4 +43,11 @@ mapc1677|C header creation in 160x200x16 with lz77 compression[^2]
 
 
 ## Lz77 image format description
-blablabla
+Not yet fully implemented, but should be:
+Offset|Length|Description
+0|3|Magic number [0x01 0x06 0x07]
+3|1|x resolution / 4 (40 max)
+4|1|x resolution (160 max)
+5|1|y resolution (200 max)
+6|32|palette 16 * 2 bytes (16 colors, each on 2 bytes)
+
