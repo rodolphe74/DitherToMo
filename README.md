@@ -54,9 +54,9 @@ Offset|Length|Description
 6|32|Palette 16 * 2 bytes (16 colors, each on 2 bytes)
 35|1|Number A of RAMA lz77 chunks
 36|1|Number B of RAMB lz77 chunks
-37|2|1st RAMA chunk size = CSZA
-38|CSZA|lz77 bytes data
-38+CSZA|Next RAMA chunk size...
+37|2|1st RAMA chunk size
+38|size of chunk|lz77 bytes data
+38+size of chunk|Next RAMA chunk size...
 
 
 
