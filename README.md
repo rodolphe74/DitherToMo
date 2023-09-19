@@ -1,4 +1,5 @@
 # DitherToMo
+## Description
 Dither image to the Thomson bitmap 40 (320x200 16 colors with color clash) graphic mode.
 
 <img src="images/original.png">   <img src="images/thomsonReprocessed.gif">
@@ -7,6 +8,7 @@ Or to the Thomson bitmap 16 (320x200 16 colors without constraint) graphic mode.
 
 <img src="images/original.png">   <img src="images/ditheredth16.gif">
 
+## Compilation
 Rely on [ImageMagick 7](https://github.com/ImageMagick/ImageMagick) :
 
 ```shell
@@ -24,6 +26,7 @@ cmake .
 make
 ```
 
+## Binaries
 Binaries|Utilisation
 ---|---
 dtm40|MAP image creation in 320x200x16[^1]
@@ -33,4 +36,7 @@ mapc16|C header creation in 160x200x16[^2]
 mapc1677|C header creation in 160x200x16 with lz77 compression[^2]
 [^1]:[Les fichiers graphiques Thomson](http://collection.thomson.free.fr/code/articles/prehisto_bulletin/page.php?XI=0&XJ=13)
 [^2]:[lz77](https://github.com/rodolphe74/lz77)
-[^3]:[see l77 image proprietary format description below](https://github.com/rodolphe74/lz77)
+[^3]:see l77 image proprietary format description below
+
+## Lz77 image format description
+blablabla
