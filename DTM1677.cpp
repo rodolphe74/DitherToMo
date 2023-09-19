@@ -518,15 +518,15 @@ int main(int argc, const char **argv)
     }
     cout << endl;
 
-//     int i = 0;
-//     for (auto it = filesList.begin(); it != filesList.end(); it++) {
-//         ditherImage(*it, i++, b);
-//     }
+    int i = 0;
+    for (auto it = filesList.begin(); it != filesList.end(); it++) {
+        ditherImage(*it, i++, b);
+    }
 
     // ditherImage("/home/rodoc/develop/tomo/saucer/saucer2.gif", 0, 15);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/build/cat160.png", 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0, 0);
-    ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
+    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1, 0);
     // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0, 0);
     // ditherImage("/home/rodoc/develop/tomo/saucer/saucer.png", 0);
