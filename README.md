@@ -58,6 +58,9 @@ Offset|Length|Description
 38|size of chunk|lz77 bytes data
 38+size of chunk|2|Next RAMA chunk size
 ...|...|...
+36+A|2|1st RAMB chunk size
+36+A+2|size of chunk|lz77 bytes data
+...|...|...
 
 
 
