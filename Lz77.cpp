@@ -378,8 +378,57 @@ INT compress(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize)
     return bf.currentIndex;
 }
 
-INT compressWithChunks(UCHAR *input, UINT iSize, UINT chunkSize, UCHAR *output, UINT oSize)
+// INT compressWithChunks(UCHAR *input, UINT iSize, UINT chunkSize, UCHAR *output, UINT oSize)
+// {
+//
+//     const UINT bufferSize = chunkSize;
+//     const UINT compressedBufferSize = chunkSize * 3;
+//
+//     UCHAR buffer[bufferSize];
+//     UCHAR cBuffer[compressedBufferSize];
+//     memset(buffer, 0, sizeof(buffer));
+//     memset(cBuffer, 0, sizeof(cBuffer));
+//     UINT inputIdx = 0;
+//     UINT outputIdx = 0;
+//     UINT sz = 0;
+//     INT cidx = 0;
+//     INT csz = 0;
+//     uint8_t a, b;
+//     while (inputIdx < iSize) {
+//         printf("%d   %d\n", inputIdx, iSize - inputIdx);
+//
+//         sz = (iSize - inputIdx > chunkSize ? chunkSize : iSize - inputIdx);
+//         memcpy(buffer, input + inputIdx, sz);
+//         cidx = compress(buffer, chunkSize, cBuffer, compressedBufferSize);
+//         printf("uncompressed:%d  compressed:%d\n", sz, cidx);
+//         csz = cidx + 1;
+//
+//         // write chunksize on 2 bytes
+//         a = (csz & 65280) >> 8;
+//         b = csz & 255;
+//         output[outputIdx] = a;
+//         output[outputIdx + 1] = b;
+//         outputIdx += 2;
+//
+//         // write chunk
+//         memcpy(output + outputIdx, cBuffer, csz);
+//         outputIdx += csz;
+//
+//         inputIdx += sz;
+//         memset(buffer, 0, sizeof(buffer));
+//         memset(cBuffer, 0, sizeof(cBuffer));
+//     }
+//     printf("*inputIdx:%d  outputIdx:%d\n", inputIdx, outputIdx);
+//     return outputIdx;
+// }
+
+
+
+INT compressWithChunks(UCHAR *input, UINT iSize, UINT chunkSize, UCHAR *output, UCHAR *chunksCount)
 {
+    // Compress a buffer with chunks of chunkSize
+    // For each chunk, 3 bytes are used for size and compression flag
+    // If compression size is bigger than plain buffer, store plain buffer instead
 
     const UINT bufferSize = chunkSize;
     const UINT compressedBufferSize = chunkSize * 3;
@@ -394,8 +443,10 @@ INT compressWithChunks(UCHAR *input, UINT iSize, UINT chunkSize, UCHAR *output, 
     INT cidx = 0;
     INT csz = 0;
     uint8_t a, b;
+    *chunksCount = 0;
+
     while (inputIdx < iSize) {
-        printf("%d   %d\n", inputIdx, iSize - inputIdx);
+//         printf("%d   %d\n", inputIdx, iSize - inputIdx);
 
         sz = (iSize - inputIdx > chunkSize ? chunkSize : iSize - inputIdx);
         memcpy(buffer, input + inputIdx, sz);
@@ -403,16 +454,33 @@ INT compressWithChunks(UCHAR *input, UINT iSize, UINT chunkSize, UCHAR *output, 
         printf("uncompressed:%d  compressed:%d\n", sz, cidx);
         csz = cidx + 1;
 
-        // write chunksize on 2 bytes
-        a = (csz & 65280) >> 8;
-        b = csz & 255;
-        output[outputIdx] = a;
-        output[outputIdx + 1] = b;
-        outputIdx += 2;
+        if (csz < chunkSize) {
+            // compressed data
+            // write chunksize on 2 bytes
+            a = (csz & 65280) >> 8;
+            b = csz & 255;
+            output[outputIdx] = a;
+            output[outputIdx + 1] = b;
+            output[outputIdx + 2] = 0x01;
+            outputIdx += 3;
 
-        // write chunk
-        memcpy(output + outputIdx, cBuffer, csz);
-        outputIdx += csz;
+            // write chunk
+            memcpy(output + outputIdx, cBuffer, csz);
+            outputIdx += csz;
+        } else {
+            // plain data
+            a = (sz & 65280) >> 8;
+            b = sz & 255;
+            output[outputIdx] = a;
+            output[outputIdx + 1] = b;
+            output[outputIdx + 2] = 0x00;
+            outputIdx += 3;
+            // write uncompressed chunk
+            memcpy(output + outputIdx, buffer, sz);
+            outputIdx += sz;
+        }
+
+        (*chunksCount)++;
 
         inputIdx += sz;
         memset(buffer, 0, sizeof(buffer));
@@ -457,12 +525,17 @@ INT uncompressWithChunks(UCHAR *input, UINT iSize, UCHAR *output, UINT oSize)
     UINT inputIdx = 0;
     UINT outputIdx = 0;
     UINT chunkSize = 0;
+    UCHAR compressedChunk = 0;
     while (inputIdx < iSize) {
         chunkSize = input[inputIdx] << 8 | input[inputIdx + 1];
         printf("ChunkSize:%d\n", chunkSize);
-        inputIdx += 2;  // sizeof(int)
+        compressedChunk = input[inputIdx + 2];
+        inputIdx += 3;
 
-        sz = uncompress(input + inputIdx, chunkSize - 1, output + outputIdx, oSize - outputIdx);
+        if (compressedChunk)
+            sz = uncompress(input + inputIdx, chunkSize - 1, output + outputIdx, oSize - outputIdx);
+        else
+            memcpy(output + outputIdx, input + inputIdx, chunkSize);
 
         inputIdx += chunkSize;
         outputIdx += sz;

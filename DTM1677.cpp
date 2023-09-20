@@ -405,59 +405,66 @@ int ditherImage(string fullpath, int countIndex, int backCompleteColor)
         UCHAR comprScreenMemB[C_MAP_BUFFER_SZ] = {0};
         UCHAR uncomprScreenMemA[MAP_BUFFER_SZ] = {0};
         UCHAR uncomprScreenMemB[MAP_BUFFER_SZ] = {0};
+        UCHAR chunksCountMemA = 0;
+        UCHAR chunksCountMemB = 0;
 
         for (int i = 0; i < map_16.rama.size(); i++) screenMemA[i] = map_16.rama[i];
-        int csza = compressWithChunks((uint8_t *) screenMemA, MAP_BUFFER_SZ, 2000, comprScreenMemA, C_MAP_BUFFER_SZ);
-        cout <<  "csza:" << csza << "  "  << map_16.rama.size() / (float) csza << endl;
+        int csza = compressWithChunks((uint8_t *) screenMemA, MAP_BUFFER_SZ, 2000, comprScreenMemA, &chunksCountMemA);
+        cout <<  "csza:" << csza << "  "  << map_16.rama.size() / (float) csza << " on " << (UINT) chunksCountMemA << " chunks" << endl;
         for (int i = 0; i < map_16.ramb.size(); i++) screenMemB[i] = map_16.ramb[i];
-        int cszb = compressWithChunks((uint8_t *) screenMemB, MAP_BUFFER_SZ, 2000, comprScreenMemB, C_MAP_BUFFER_SZ);
-        cout <<  "cszb:" << cszb << "  "  << map_16.ramb.size() / (float) cszb << endl;
+        int cszb = compressWithChunks((uint8_t *) screenMemB, MAP_BUFFER_SZ, 2000, comprScreenMemB, &chunksCountMemB);
+        cout <<  "cszb:" << cszb << "  "  << map_16.ramb.size() / (float) cszb << " on " << (UINT) chunksCountMemB << " chunks" << endl;
 
-        // DEBUG : validation decompression
+        // decompression validation
+        UCHAR compOk = 1;
         UINT ucsza = uncompressWithChunks(comprScreenMemA, csza, uncomprScreenMemA, MAP_BUFFER_SZ);
         printf("Size:%d\n", ucsza);
         for (int i = 0; i < ucsza; i++)
-            if (uncomprScreenMemA[i] != screenMemA[i])
+            if (uncomprScreenMemA[i] != screenMemA[i]) {
+                compOk = 0;
                 cout << "Decompression validation error at " << i << endl;
+            }
         UINT ucszb = uncompressWithChunks(comprScreenMemB, cszb, uncomprScreenMemB, MAP_BUFFER_SZ);
         for (int i = 0; i < ucszb; i++)
-            if (uncomprScreenMemB[i] != screenMemB[i])
+            if (uncomprScreenMemB[i] != screenMemB[i]) {
+                compOk = 0;
                 cout << "Decompression validation error at " << i << endl;
+            }
+        if (compOk)
+            cout << "Compression valid" << endl;
+        else
+            cout << "Compression error" << endl;
 
+        // Write compressed file
+        string cname = name + ".167";
+        ofstream osc(cname);
 
-        string cname = name + ".169";
+        // Magick
+        char magick[] = {0x01, 0x06, 0x07};
+        osc.write((char *) &magick, 3);
 
-        // write sizes
+        // Sizes
         xxCount = xCount * 4;
         cout << "size=" << xxCount << "*" << yCount << endl;
-        ofstream osc(cname);
+
         // osc << (uint8_t) xCount << (uint8_t) xCount*4 << (uint8_t) yCount;
         osc.write((char *) &xCount, 1);
         osc.write((char *) &xxCount, 1);
         osc.write((char *) &yCount, 1);
 
-        // write palette
+        // Palette
         for (auto p = thomsonPaletteCleaned.begin(); p != thomsonPaletteCleaned.end(); p++) {
-            // osc << "\t" << (uint16_t) p->second.thomsonIndex;
-            cout << p->second.thomsonIndex << endl;
-            // osc.write((char *) &p->second.thomsonIndex, 2);
             uint8_t a = (p->second.thomsonIndex & 65280) >> 8;
             uint8_t b = p->second.thomsonIndex & 255;
             osc.write((char *) &a, 1);
             osc.write((char *) &b, 1);
         }
 
-        // write compressed file
-        // for (int i = 0; i < csza; i++) {
-        //     uint8_t a = comprScreenMemA[i];
-        //     osc.write((char *) &a, 1);
-        // }
-        // printf("\n");
-        //
-        // for (int i = 0; i < cszb; i++) {
-        //     uint8_t b = comprScreenMemB[i];
-        //     osc.write((char *) &b, 1);
-        // }
+        // Chunks number
+        osc.write((char *) &chunksCountMemA, 1);
+        osc.write((char *) &chunksCountMemB, 1);
+
+        // Chunks data
         osc.write((char *) comprScreenMemA, csza);
         osc.write((char *) comprScreenMemB, cszb);
 
@@ -523,13 +530,11 @@ int main(int argc, const char **argv)
         ditherImage(*it, i++, b);
     }
 
-    // ditherImage("/home/rodoc/develop/tomo/saucer/saucer2.gif", 0, 15);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/build/cat160.png", 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0, 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1, 0);
-    // ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0, 0);
-    // ditherImage("/home/rodoc/develop/tomo/saucer/saucer.png", 0);
+//     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/moby-dick-Herman-Melville.jpg", 0, 0);
+//     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0, 0);
+//     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
+//     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/nimoy.jpg", 1, 0);
+//     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/beast01.png", 0, 0);
 
     return 0;
 }
