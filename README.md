@@ -56,12 +56,12 @@ Offset|Length|Description
 39|1|Number B of RAMB lz77 (or not[^4]) chunks
 40|2|1st RAMA chunk size
 41|1|Boolean: compressed chunk or not.
-42|size of chunk|lz77 RAMA bytes data
+42|size of chunk|lz77 (or not[^4]) RAMA bytes data
 42+size of chunk|2|Next RAMA chunk size
 ...|...|...
 N|2|1st RAMB chunk size
-N+1|1|Boolean: compressed chunk or not.
-N+2|size of chunk|lz77 RAMB bytes data
+N+1|1|Boolean: compressed chunk (or not[^4]).
+N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 ...|...|...
 
 [^4]:sometimes compressed chunks are bigger than uncompressed one
