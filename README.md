@@ -64,5 +64,5 @@ N+1|1|Boolean: compressed chunk (or not[^4]).
 N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 ...|...|...
 
-[^4]:sometimes compressed chunks are bigger than uncompressed one
+[^4]:sometimes compressed chunks are bigger than uncompressed ones
 
