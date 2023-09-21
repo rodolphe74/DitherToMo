@@ -65,5 +65,7 @@ N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 
 [^4]:sometimes compressed chunks are bigger than uncompressed ones
 
+Realtime image decompression on a TO8:
+
 <img src="loader.gif" width=352>
 
