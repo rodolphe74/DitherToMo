@@ -43,7 +43,6 @@ mapc1677|C header creation in 160x200x16 with lz77 compression[^2]
 
 
 ## 160x200x16 lz77 image format description
-Not yet fully implemented, but should be:
 
 Offset|Length|Description
 ---|---|---
@@ -65,4 +64,6 @@ N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 ...|...|...
 
 [^4]:sometimes compressed chunks are bigger than uncompressed ones
+
+<img src="loader.gif">
 
