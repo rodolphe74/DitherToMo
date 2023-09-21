@@ -65,5 +65,5 @@ N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 
 [^4]:sometimes compressed chunks are bigger than uncompressed ones
 
-<img src="loader.gif">
+<img src="loader.gif" width=50%>
 
