@@ -38,7 +38,7 @@
 // & knuthMorrisPrattSearch memory overhead
 #define MATCH_STRING_FUNC bruteForceSearchOptim
 #else
-#define MATCH_STRING_FUNC boyerMooreSearch
+#define MATCH_STRING_FUNC karpRabinSearch
 #endif
 
 

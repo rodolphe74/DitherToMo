@@ -423,12 +423,14 @@ int ditherImage(string fullpath, int countIndex, int backCompleteColor)
             if (uncomprScreenMemA[i] != screenMemA[i]) {
                 compOk = 0;
                 cout << "Decompression validation error at " << i << endl;
+                exit(1);
             }
         UINT ucszb = uncompressWithChunks(comprScreenMemB, cszb, uncomprScreenMemB, MAP_BUFFER_SZ);
         for (int i = 0; i < ucszb; i++)
             if (uncomprScreenMemB[i] != screenMemB[i]) {
                 compOk = 0;
                 cout << "Decompression validation error at " << i << endl;
+                exit(1);
             }
         if (compOk)
             cout << "Compression valid" << endl;
@@ -530,6 +532,7 @@ int main(int argc, const char **argv)
         ditherImage(*it, i++, b);
     }
 
+//     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/arton5254.gif", 0, 0);
 //     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/moby-dick-Herman-Melville.jpg", 0, 0);
 //     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedRouge.jpg", 0, 0);
 //     ditherImage("/home/rodoc/develop/projects/DitherToMo/images/fouAPiedBleu.jpg", 0, 0);
