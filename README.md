@@ -71,4 +71,4 @@ N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 
 See [loader.c](thomson/loader.c) for a sample on how to load an image from a floppy on a TO8D.
 
-See [Makefile](thomson/Makefile) for a sample on how to compile it with [cmoc](http://perso.b2b2c.ca/~sarrazip/dev/cmoc.html)
+See [Makefile](thomson/Makefile) for a sample on how to compile it with [cmoc](http://perso.b2b2c.ca/~sarrazip/dev/cmoc.html).
