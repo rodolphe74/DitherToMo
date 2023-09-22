@@ -69,3 +69,4 @@ N+2|size of chunk|lz77 (or not[^4]) RAMB bytes data
 ### Realtime image decompression (TO8)
 <img src="loader.gif" width=352>
 
+see [loader.c](thomson/loader.c) for a sample on how to load an image from a floppy on a TO8D.
