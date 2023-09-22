@@ -61,20 +61,20 @@ void loadAndDisplay(const char *name, const char *ext) {
     int l = sizeof(long);
     int sizex, sizexx, sizey;
     UCHAR aChunks, bChunks;
-	
-	// starting address of TO8 screen memory
+
+    // starting address of TO8 screen memory
     int *screenStart = (int *)0x4000;
     UCHAR *screenStartChar = (UCHAR *)screenStart;
-	
-	// 160x200x16 mode
-	_160();
-	
-	// clean screen
-	memset((UCHAR *) screenStartChar, 0, 8000);
-	_SWITCH_B();
-	memset((UCHAR *) screenStartChar, 0, 8000);
 
-	// search File 
+    // 160x200x16 mode
+    _160();
+
+    // clean screen
+    memset((UCHAR *) screenStartChar, 0, 8000);
+    _SWITCH_B();
+    memset((UCHAR *) screenStartChar, 0, 8000);
+
+    // search File
     FILE r;
     init();
     seekFile(name, ext, &r);
@@ -120,7 +120,7 @@ void loadAndDisplay(const char *name, const char *ext) {
     UCHAR count = 0;
     UCHAR isComp = 0;
     while (count < aChunks + bChunks) {
-		// read loop
+        // read loop
         read(&r, myBuf, 2);
         chunkSize = myBuf[0];
         chunkSize = chunkSize << 8;
@@ -152,16 +152,16 @@ void loadAndDisplay(const char *name, const char *ext) {
 
 int main(/*int argc, char *argv[]*/)
 {
-	loadAndDisplay("moby-d00", "167");
-	_WAITSPC();
-	loadAndDisplay("beast000", "167");
-	_WAITSPC();
-	loadAndDisplay("fouAPi00", "167");
-	_WAITSPC();
-	loadAndDisplay("arton400", "167");
-	_WAITSPC();
-	loadAndDisplay("arton500", "167");
-	_WAITSPC();
-	
+    loadAndDisplay("moby-d00", "167");
+    _WAITSPC();
+    loadAndDisplay("beast000", "167");
+    _WAITSPC();
+    loadAndDisplay("fouAPi00", "167");
+    _WAITSPC();
+    loadAndDisplay("arton400", "167");
+    _WAITSPC();
+    loadAndDisplay("arton500", "167");
+    _WAITSPC();
+
     return 0;
 }
