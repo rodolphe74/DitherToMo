@@ -1,0 +1,8 @@
+-I
+/usr/local/share/cmoc/include
+-I
+\\wsl.localhost\Ubuntu\usr\local\share\cmoc\include
+-U
+__GNUC__
+#-D
+#_H_CMOC
